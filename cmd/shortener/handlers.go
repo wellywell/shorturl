@@ -18,7 +18,7 @@ type UrlsHandler struct {
 	host string
 }
 
-func (uh *UrlsHandler) HandleCreateShortUrl(w http.ResponseWriter, req *http.Request) {
+func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Request) {
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -26,24 +26,24 @@ func (uh *UrlsHandler) HandleCreateShortUrl(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	longUrl := string(body)
-	if !url.ValidateUrl(longUrl) {
+	longURL := string(body)
+	if !url.ValidateURL(longURL) {
 		// TODO more informative answer
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	shortURLID := url.MakeShortUrlId(longUrl)
+	shortURLID := url.MakeShortURLID(longURL)
 
 	// Handle collisions
 	for {
 		val, exists := uh.urls.Get(shortURLID)
-		if exists && val != longUrl {
-			shortURLID = url.MakeShortUrlId(longUrl)
+		if exists && val != longURL {
+			shortURLID = url.MakeShortURLID(longURL)
 		} else {
 			break
 		}
 	}
-	err = uh.urls.Put(shortURLID, longUrl)
+	err = uh.urls.Put(shortURLID, longURL)
 	// TODO more specific error handling
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

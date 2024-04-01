@@ -13,7 +13,7 @@ func main() {
 	urls := &UrlsHandler{urls: storage, host: "http://localhost:8080"}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("POST /", urls.HandleCreateShortUrl)
+	mux.HandleFunc("POST /", urls.HandleCreateShortURL)
 	mux.HandleFunc("GET /{id}", urls.HandleGetFullURL)
 	mux.HandleFunc("/", BadRequest)
 
