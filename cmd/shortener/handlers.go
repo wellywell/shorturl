@@ -32,17 +32,18 @@ func (uh *UrlsHandler) HandleCreateShortUrl(w http.ResponseWriter, req *http.Req
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	shortUrlId := url.MakeShortUrlId(longUrl)
+	shortURLID := url.MakeShortUrlId(longUrl)
 
 	// Handle collisions
 	for {
-		val, exists := uh.urls.Get(shortUrlId)
+		val, exists := uh.urls.Get(shortURLID)
 		if exists && val != longUrl {
-			shortUrlId = url.MakeShortUrlId(longUrl)
+			shortURLID = url.MakeShortUrlId(longUrl)
+		} else {
+			break
 		}
-		break
 	}
-	err = uh.urls.Put(shortUrlId, longUrl)
+	err = uh.urls.Put(shortURLID, longUrl)
 	// TODO more specific error handling
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -52,16 +53,16 @@ func (uh *UrlsHandler) HandleCreateShortUrl(w http.ResponseWriter, req *http.Req
 	var sb strings.Builder
 	sb.WriteString(uh.host)
 	sb.WriteString("/")
-	sb.WriteString(shortUrlId)
+	sb.WriteString(shortURLID)
 
-	shortUrl := sb.String()
+	shortURL := sb.String()
 
 	w.Header().Set("content-type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(shortUrl))
+	w.Write([]byte(shortURL))
 }
 
-func (uh *UrlsHandler) HandleGetFullUrl(w http.ResponseWriter, req *http.Request) {
+func (uh *UrlsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request) {
 	idString := req.PathValue("id")
 
 	if idString == "" {

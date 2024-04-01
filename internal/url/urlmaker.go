@@ -8,7 +8,7 @@ import (
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const length = 10
 
-func MakeShortUrlId(longUrl string) (shortUrl string) {
+func MakeShortUrlId(longUrl string) (shortURL string) {
 	var sb strings.Builder
 
 	for i := 0; i < length; i++ {

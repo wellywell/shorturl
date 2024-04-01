@@ -14,7 +14,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /", urls.HandleCreateShortUrl)
-	mux.HandleFunc("GET /{id}", urls.HandleGetFullUrl)
+	mux.HandleFunc("GET /{id}", urls.HandleGetFullURL)
 	mux.HandleFunc("/", BadRequest)
 
 	fmt.Println("Starting")
