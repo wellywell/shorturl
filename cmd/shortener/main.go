@@ -8,7 +8,6 @@ import (
 )
 
 func main() {
-	pwd
 
 	storage := storage.NewMemory()
 	urls := &UrlsHandler{urls: storage, host: "http://localhost:8080"}
