@@ -18,6 +18,6 @@ func MakeShortURLID(longURL string) (shortURL string) {
 	return sb.String()
 }
 
-func ValidateURL(url string) bool {
+func Validate(url string) bool {
 	return len(url) > 0 && len(url) < 250
 }

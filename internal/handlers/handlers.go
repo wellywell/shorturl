@@ -1,4 +1,4 @@
-package main
+package handlers
 
 import (
 	"io"
@@ -14,44 +14,47 @@ type Storage interface {
 }
 
 type UrlsHandler struct {
-	urls Storage
-	host string
+	Urls Storage
+	Host string
 }
 
 func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodPost {
+		http.Error(w, "Wrong method",
+			http.StatusMethodNotAllowed)
+	}
+
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Something went wrong"))
-		return
+		http.Error(w, "Something went wrong",
+			http.StatusInternalServerError)
 	}
 
 	longURL := string(body)
-	if !url.ValidateURL(longURL) {
-		// TODO more informative answer
-		w.WriteHeader(http.StatusBadRequest)
-		return
+	if !url.Validate(longURL) {
+		http.Error(w, "Url must be of length from 1 to 250", // TODO more informative answer
+			http.StatusBadRequest)
 	}
 	shortURLID := url.MakeShortURLID(longURL)
 
 	// Handle collisions
 	for {
-		val, exists := uh.urls.Get(shortURLID)
+		val, exists := uh.Urls.Get(shortURLID)
 		if exists && val != longURL {
 			shortURLID = url.MakeShortURLID(longURL)
 		} else {
 			break
 		}
 	}
-	err = uh.urls.Put(shortURLID, longURL)
+	err = uh.Urls.Put(shortURLID, longURL)
 	// TODO more specific error handling
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Could not store url"))
-		return
+		http.Error(w, "Could not store url",
+			http.StatusInternalServerError)
 	}
 	var sb strings.Builder
-	sb.WriteString(uh.host)
+	sb.WriteString(uh.Host)
 	sb.WriteString("/")
 	sb.WriteString(shortURLID)
 
@@ -63,16 +66,21 @@ func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 }
 
 func (uh *UrlsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodGet {
+		http.Error(w, "Wrong method",
+			http.StatusMethodNotAllowed)
+	}
+
 	idString := req.PathValue("id")
 
 	if idString == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		http.Error(w, "Id not passed", http.StatusBadRequest)
 	}
-	url, ok := uh.urls.Get(idString)
+	url, ok := uh.Urls.Get(idString)
 	if !ok {
-		w.WriteHeader(http.StatusNotFound)
-		return
+		http.Error(w, "Not found", http.StatusNotFound)
+
 	}
 	w.Header().Set("location", url)
 	w.WriteHeader(http.StatusTemporaryRedirect)
