@@ -82,7 +82,7 @@ func TestHandleGetFullURL(t *testing.T) {
 
 			assert.Equal(t, tc.expectedCode, w.Code, "Код ответа не совпадает с ожидаемым")
 			if w.Code == http.StatusTemporaryRedirect {
-				assert.Equal(t, []string([]string{"http://something.com"}), w.HeaderMap["Location"], "Неправильная ссылка")
+				assert.Equal(t, []string([]string{"http://something.com"}), w.Header()["Location"], "Неправильная ссылка")
 			}
 		})
 	}
