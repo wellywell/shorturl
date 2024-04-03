@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/wellywell/shorturl/internal/handlers"
 	"github.com/wellywell/shorturl/internal/storage"
@@ -13,13 +14,12 @@ func main() {
 	storage := storage.NewMemory()
 	urls := &handlers.UrlsHandler{Urls: storage, Host: "http://localhost:8080"}
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("POST /", urls.HandleCreateShortURL)
-	mux.HandleFunc("GET /{id}", urls.HandleGetFullURL)
-	mux.HandleFunc("/", handlers.BadRequest)
+	r := chi.NewRouter()
 
-	fmt.Println("Starting")
-	err := http.ListenAndServe(`:8080`, mux)
+	r.Post("/", urls.HandleCreateShortURL)
+	r.Get("/{id}", urls.HandleGetFullURL)
+
+	err := http.ListenAndServe(`:8080`, r)
 	if err != nil {
 		panic(err)
 	}
