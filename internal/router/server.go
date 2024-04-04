@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	log "github.com/sirupsen/logrus"
 )
 
 type ServerConfig interface {
@@ -32,6 +33,8 @@ func NewRouter(config ServerConfig, handlers UrlsHandlers) *Router {
 }
 
 func (r *Router) ListenAndServe() error {
-	err := http.ListenAndServe(r.config.GetBaseAddress(), r.router)
+	addr := r.config.GetBaseAddress()
+	log.Infof("Starting server listening on: %s", addr)
+	err := http.ListenAndServe(addr, r.router)
 	return err
 }

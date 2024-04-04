@@ -9,13 +9,15 @@ import (
 
 func main() {
 
+	config, err := config.NewConfig()
+	if err != nil {
+		panic(err)
+	}
 	storage := storage.NewMemory()
-	config := config.NewCommandLineParams()
 	urls := handlers.NewUrlsHandler(storage, config)
-
 	r := router.NewRouter(config, urls)
 
-	err := r.ListenAndServe()
+	err = r.ListenAndServe()
 	if err != nil {
 		panic(err)
 	}
