@@ -12,8 +12,8 @@ type CommandLineParams struct {
 func NewCommandLineParams() *CommandLineParams {
 	params := &CommandLineParams{}
 
-	flag.StringVar(&params.BaseAddress, "a", "localhost:8888", "Base address to listen on")
-	flag.StringVar(&params.ShortURLsAddress, "b", "localhost:8888", "Short URLs base address")
+	flag.StringVar(&params.BaseAddress, "a", "localhost:8080", "Base address to listen on")
+	flag.StringVar(&params.ShortURLsAddress, "b", "localhost:8080", "Short URLs base address")
 	flag.Parse()
 
 	return params
