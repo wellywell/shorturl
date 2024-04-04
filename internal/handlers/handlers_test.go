@@ -20,7 +20,7 @@ func (c *mockConfig) GetBaseAddress() string {
 }
 
 func (c *mockConfig) GetShortURLsAddress() string {
-	return "localhost:8080"
+	return "http://localhost:8080"
 }
 
 func TestHandleCreateShortURL(t *testing.T) {

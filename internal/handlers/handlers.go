@@ -65,7 +65,6 @@ func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 			http.StatusInternalServerError)
 	}
 	var sb strings.Builder
-	sb.WriteString("http://")
 	sb.WriteString(uh.config.GetShortURLsAddress())
 	sb.WriteString("/")
 	sb.WriteString(shortURLID)
