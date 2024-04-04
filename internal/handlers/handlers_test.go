@@ -12,6 +12,17 @@ import (
 	"github.com/wellywell/shorturl/internal/storage"
 )
 
+type mockConfig struct {
+}
+
+func (c *mockConfig) GetBaseAddress() string {
+	return "localhost:8080"
+}
+
+func (c *mockConfig) GetShortURLsAddress() string {
+	return "localhost:8080"
+}
+
 func TestHandleCreateShortURL(t *testing.T) {
 
 	testCases := []struct {
@@ -29,7 +40,7 @@ func TestHandleCreateShortURL(t *testing.T) {
 	}
 
 	storage := storage.NewMemory()
-	urls := &UrlsHandler{Urls: storage, Host: "http://localhost:8080"}
+	urls := &UrlsHandler{urls: storage, config: &mockConfig{}}
 
 	for _, tc := range testCases {
 		t.Run(tc.method, func(t *testing.T) {
@@ -49,7 +60,7 @@ func TestHandleCreateShortURL(t *testing.T) {
 func TestHandleGetFullURL(t *testing.T) {
 
 	storage := storage.NewMemory()
-	urls := &UrlsHandler{Urls: storage, Host: ""}
+	urls := &UrlsHandler{urls: storage, config: &mockConfig{}}
 
 	// Create short url
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("http://something.com"))
@@ -57,7 +68,8 @@ func TestHandleGetFullURL(t *testing.T) {
 
 	urls.HandleCreateShortURL(w, r)
 	shortURL := w.Body.String()
-	urlID := strings.Trim(shortURL, "/")
+	splits := strings.Split(shortURL, "/")
+	urlID := splits[len(splits)-1]
 
 	testCases := []struct {
 		method       string

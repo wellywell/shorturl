@@ -13,9 +13,20 @@ type Storage interface {
 	Get(key string) (val string, ok bool)
 }
 
+type ServerConfig interface {
+	GetShortURLsAddress() string
+}
+
 type UrlsHandler struct {
-	Urls Storage
-	Host string
+	urls   Storage
+	config ServerConfig
+}
+
+func NewUrlsHandler(storage Storage, config ServerConfig) *UrlsHandler {
+	return &UrlsHandler{
+		urls:   storage,
+		config: config,
+	}
 }
 
 func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Request) {
@@ -40,21 +51,22 @@ func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 
 	// Handle collisions
 	for {
-		val, exists := uh.Urls.Get(shortURLID)
+		val, exists := uh.urls.Get(shortURLID)
 		if exists && val != longURL {
 			shortURLID = url.MakeShortURLID(longURL)
 		} else {
 			break
 		}
 	}
-	err = uh.Urls.Put(shortURLID, longURL)
+	err = uh.urls.Put(shortURLID, longURL)
 	// TODO more specific error handling
 	if err != nil {
 		http.Error(w, "Could not store url",
 			http.StatusInternalServerError)
 	}
 	var sb strings.Builder
-	sb.WriteString(uh.Host)
+	sb.WriteString("http:/")
+	sb.WriteString(uh.config.GetShortURLsAddress())
 	sb.WriteString("/")
 	sb.WriteString(shortURLID)
 
@@ -62,7 +74,11 @@ func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 
 	w.Header().Set("content-type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte(shortURL))
+	_, err = w.Write([]byte(shortURL))
+	if err != nil {
+		http.Error(w, "Something went wrong",
+			http.StatusInternalServerError)
+	}
 }
 
 func (uh *UrlsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request) {
@@ -77,7 +93,7 @@ func (uh *UrlsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request
 	if idString == "" {
 		http.Error(w, "Id not passed", http.StatusBadRequest)
 	}
-	url, ok := uh.Urls.Get(idString)
+	url, ok := uh.urls.Get(idString)
 	if !ok {
 		http.Error(w, "Not found", http.StatusNotFound)
 
