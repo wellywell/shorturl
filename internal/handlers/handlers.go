@@ -1,10 +1,13 @@
 package handlers
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
+	"github.com/wellywell/shorturl/internal/config"
+	"github.com/wellywell/shorturl/internal/storage"
 	"github.com/wellywell/shorturl/internal/url"
 )
 
@@ -13,16 +16,12 @@ type Storage interface {
 	Get(key string) (val string, ok bool)
 }
 
-type ServerConfig interface {
-	GetShortURLsAddress() string
-}
-
 type UrlsHandler struct {
 	urls   Storage
-	config ServerConfig
+	config config.ServerConfig
 }
 
-func NewUrlsHandler(storage Storage, config ServerConfig) *UrlsHandler {
+func NewUrlsHandler(storage Storage, config config.ServerConfig) *UrlsHandler {
 	return &UrlsHandler{
 		urls:   storage,
 		config: config,
@@ -51,25 +50,23 @@ func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 
 	// Handle collisions
 	for {
-		val, exists := uh.urls.Get(shortURLID)
-		if exists && val != longURL {
-			shortURLID = url.MakeShortURLID(longURL)
-		} else {
+		if err = uh.urls.Put(shortURLID, longURL); err == nil {
 			break
 		}
-	}
-	err = uh.urls.Put(shortURLID, longURL)
-	// TODO more specific error handling
-	if err != nil {
-		http.Error(w, "Could not store url",
-			http.StatusInternalServerError)
-	}
-	var sb strings.Builder
-	sb.WriteString(uh.config.GetShortURLsAddress())
-	sb.WriteString("/")
-	sb.WriteString(shortURLID)
 
-	shortURL := sb.String()
+		var keyExists *storage.KeyExistsError
+		if errors.As(err, &keyExists) {
+			// сгенерить новую ссылку и попробовать заново
+			shortURLID = url.MakeShortURLID(longURL)
+		} else {
+			http.Error(w, "Could not store url",
+				http.StatusInternalServerError)
+			return
+		}
+
+	}
+
+	shortURL := fmt.Sprintf("%s/%s", uh.config.ShortURLsAddress, shortURLID)
 
 	w.Header().Set("content-type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
@@ -99,8 +96,4 @@ func (uh *UrlsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request
 	}
 	w.Header().Set("location", url)
 	w.WriteHeader(http.StatusTemporaryRedirect)
-}
-
-func BadRequest(w http.ResponseWriter, req *http.Request) {
-	w.WriteHeader(http.StatusBadRequest)
 }

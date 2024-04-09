@@ -5,12 +5,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	log "github.com/sirupsen/logrus"
-)
 
-type ServerConfig interface {
-	GetShortURLsAddress() string
-	GetBaseAddress() string
-}
+	"github.com/wellywell/shorturl/internal/config"
+)
 
 type UrlsHandlers interface {
 	HandleCreateShortURL(w http.ResponseWriter, req *http.Request)
@@ -18,11 +15,11 @@ type UrlsHandlers interface {
 }
 
 type Router struct {
-	config ServerConfig
+	config config.ServerConfig
 	router *chi.Mux
 }
 
-func NewRouter(config ServerConfig, handlers UrlsHandlers) *Router {
+func NewRouter(config config.ServerConfig, handlers UrlsHandlers) *Router {
 
 	r := chi.NewRouter()
 
@@ -33,7 +30,7 @@ func NewRouter(config ServerConfig, handlers UrlsHandlers) *Router {
 }
 
 func (r *Router) ListenAndServe() error {
-	addr := r.config.GetBaseAddress()
+	addr := r.config.BaseAddress
 	log.Infof("Starting server listening on: %s", addr)
 	err := http.ListenAndServe(addr, r.router)
 	return err

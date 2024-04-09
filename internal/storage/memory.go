@@ -1,13 +1,16 @@
 package storage
 
 import (
+	"fmt"
 	"sync"
 )
 
-type RaceConditionError struct{}
+type KeyExistsError struct {
+	Key string
+}
 
-func (e *RaceConditionError) Error() string {
-	return "Key already exists with different value"
+func (e *KeyExistsError) Error() string {
+	return fmt.Sprintf("Key %s already exists with different value", e.Key)
 }
 
 type Memory struct {
@@ -33,7 +36,7 @@ func (m *Memory) Put(key string, val string) error {
 	defer m.lock.RUnlock()
 	v, exists := m.urls[key]
 	if exists && v != val {
-		return &RaceConditionError{}
+		return &KeyExistsError{Key: key}
 	}
 	m.urls[key] = val
 	return nil
