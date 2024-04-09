@@ -14,8 +14,8 @@ func main() {
 		panic(err)
 	}
 	storage := storage.NewMemory()
-	urls := handlers.NewUrlsHandler(storage, config)
-	r := router.NewRouter(config, urls)
+	urls := handlers.NewUrlsHandler(storage, *config)
+	r := router.NewRouter(*config, urls)
 
 	err = r.ListenAndServe()
 	if err != nil {
