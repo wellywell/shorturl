@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/wellywell/shorturl/internal/config"
 )
@@ -14,14 +13,22 @@ type UrlsHandlers interface {
 	HandleGetFullURL(w http.ResponseWriter, req *http.Request)
 }
 
+type Middleware interface {
+	Handle(h http.Handler) http.Handler
+}
+
 type Router struct {
 	config config.ServerConfig
 	router *chi.Mux
 }
 
-func NewRouter(config config.ServerConfig, handlers UrlsHandlers) *Router {
+func NewRouter(config config.ServerConfig, handlers UrlsHandlers, middlewares ...Middleware) *Router {
 
 	r := chi.NewRouter()
+
+	for _, m := range middlewares {
+		r.Use(m.Handle)
+	}
 
 	r.Post("/", handlers.HandleCreateShortURL)
 	r.Get("/{id}", handlers.HandleGetFullURL)
@@ -31,7 +38,6 @@ func NewRouter(config config.ServerConfig, handlers UrlsHandlers) *Router {
 
 func (r *Router) ListenAndServe() error {
 	addr := r.config.BaseAddress
-	log.Infof("Starting server listening on: %s", addr)
 	err := http.ListenAndServe(addr, r.router)
 	return err
 }

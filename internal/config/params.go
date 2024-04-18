@@ -4,7 +4,6 @@ import (
 	"flag"
 
 	"github.com/caarlos0/env/v6"
-	log "github.com/sirupsen/logrus"
 )
 
 type ServerConfig struct {
@@ -27,13 +26,9 @@ func NewConfig() (*ServerConfig, error) {
 
 	if params.BaseAddress == "" {
 		params.BaseAddress = commandLineParams.BaseAddress
-	} else {
-		log.Infof("Using ENV param SERVER_ADDRESS: %s", params.BaseAddress)
 	}
 	if params.ShortURLsAddress == "" {
 		params.ShortURLsAddress = commandLineParams.ShortURLsAddress
-	} else {
-		log.Infof("Using ENV param BASE_URL: %s", params.ShortURLsAddress)
 	}
 
 	return &params, nil
