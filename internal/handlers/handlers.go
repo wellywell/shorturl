@@ -43,7 +43,7 @@ func (uh *UrlsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 	}
 
 	var data struct {
-		Url string `json:"url"`
+		URL string `json:"url"`
 	}
 
 	err = json.Unmarshal(body, &data)
@@ -53,7 +53,7 @@ func (uh *UrlsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	longURL := data.Url
+	longURL := data.URL
 	if !url.Validate(longURL) {
 		http.Error(w, "Url must be of length from 1 to 250", // TODO more informative answer
 			http.StatusBadRequest)
