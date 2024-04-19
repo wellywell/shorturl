@@ -42,7 +42,7 @@ func (uh *UrlsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	var data *struct {
+	var data struct {
 		Url string `json:"url"`
 	}
 

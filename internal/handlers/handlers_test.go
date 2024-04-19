@@ -79,7 +79,7 @@ func TestHandleShortenURLJSON(t *testing.T) {
 			if tc.bodyIsExpected {
 				assert.NotEmpty(t, w.Body.String(), "Body пустой")
 
-				var result *struct {
+				var result struct {
 					Result string `json:"result"`
 				}
 				body, _ := io.ReadAll(w.Body)
