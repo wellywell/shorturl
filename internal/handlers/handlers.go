@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -28,6 +29,66 @@ func NewUrlsHandler(storage Storage, config config.ServerConfig) *UrlsHandler {
 	}
 }
 
+func (uh *UrlsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodPost {
+		http.Error(w, "Wrong method",
+			http.StatusMethodNotAllowed)
+		return
+	}
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(w, "Something went wrong",
+			http.StatusInternalServerError)
+		return
+	}
+
+	var data *struct {
+		Url string `json:"url"`
+	}
+
+	err = json.Unmarshal(body, &data)
+	if err != nil {
+		http.Error(w, "Could not parse body",
+			http.StatusBadRequest)
+		return
+	}
+
+	longURL := data.Url
+	if !url.Validate(longURL) {
+		http.Error(w, "Url must be of length from 1 to 250", // TODO more informative answer
+			http.StatusBadRequest)
+		return
+	}
+
+	shortURL, err := uh.createShortURL(longURL)
+	if err != nil {
+		http.Error(w, "Could not store url",
+			http.StatusInternalServerError)
+		return
+	}
+
+	result := struct {
+		Result string `json:"result"`
+	}{
+		Result: shortURL,
+	}
+
+	response, err := json.Marshal(result)
+	if err != nil {
+		http.Error(w, "Could not serialize result",
+			http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(response)
+	if err != nil {
+		http.Error(w, "Something went wrong",
+			http.StatusInternalServerError)
+	}
+}
+
 func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodPost {
@@ -46,27 +107,12 @@ func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 		http.Error(w, "Url must be of length from 1 to 250", // TODO more informative answer
 			http.StatusBadRequest)
 	}
-	shortURLID := url.MakeShortURLID(longURL)
 
-	// Handle collisions
-	for {
-		if err = uh.urls.Put(shortURLID, longURL); err == nil {
-			break
-		}
-
-		var keyExists *storage.KeyExistsError
-		if errors.As(err, &keyExists) {
-			// сгенерить новую ссылку и попробовать заново
-			shortURLID = url.MakeShortURLID(longURL)
-		} else {
-			http.Error(w, "Could not store url",
-				http.StatusInternalServerError)
-			return
-		}
-
+	shortURL, err := uh.createShortURL(longURL)
+	if err != nil {
+		http.Error(w, "Could not store url",
+			http.StatusInternalServerError)
 	}
-
-	shortURL := fmt.Sprintf("%s/%s", uh.config.ShortURLsAddress, shortURLID)
 
 	w.Header().Set("content-type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
@@ -75,6 +121,28 @@ func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 		http.Error(w, "Something went wrong",
 			http.StatusInternalServerError)
 	}
+}
+
+func (uh *UrlsHandler) createShortURL(longURL string) (string, error) {
+	shortURLID := url.MakeShortURLID(longURL)
+
+	// Handle collisions
+	for {
+		err := uh.urls.Put(shortURLID, longURL)
+		if err == nil {
+			break
+		}
+
+		var keyExists *storage.KeyExistsError
+		if errors.As(err, &keyExists) {
+			// сгенерить новую ссылку и попробовать заново
+			shortURLID = url.MakeShortURLID(longURL)
+		} else {
+			return "", err
+		}
+
+	}
+	return fmt.Sprintf("%s/%s", uh.config.ShortURLsAddress, shortURLID), nil
 }
 
 func (uh *UrlsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request) {

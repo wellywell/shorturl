@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -44,6 +45,47 @@ func TestHandleCreateShortURL(t *testing.T) {
 			assert.Equal(t, tc.expectedCode, w.Code, "Код ответа не совпадает с ожидаемым")
 			if tc.bodyIsExpected {
 				assert.NotEmpty(t, w.Body.String(), "Body пустой")
+			}
+		})
+	}
+}
+
+func TestHandleShortenURLJSON(t *testing.T) {
+
+	testCases := []struct {
+		method         string
+		expectedCode   int
+		body           io.Reader
+		bodyIsExpected bool
+	}{
+		{method: http.MethodGet, body: nil, expectedCode: http.StatusMethodNotAllowed, bodyIsExpected: false},
+		{method: http.MethodPut, body: nil, expectedCode: http.StatusMethodNotAllowed, bodyIsExpected: false},
+		{method: http.MethodDelete, body: nil, expectedCode: http.StatusMethodNotAllowed, bodyIsExpected: false},
+		{method: http.MethodPost, body: strings.NewReader("{\"url\": \"http://some_url.de\"}"), expectedCode: http.StatusCreated, bodyIsExpected: true},
+		{method: http.MethodPost, body: strings.NewReader("{\"smth\": \"w\"}"), expectedCode: http.StatusBadRequest, bodyIsExpected: false},
+	}
+
+	storage := storage.NewMemory()
+	urls := &UrlsHandler{urls: storage, config: mockConfig}
+
+	for _, tc := range testCases {
+		t.Run(tc.method, func(t *testing.T) {
+			r := httptest.NewRequest(tc.method, "/api/shorten", tc.body)
+			w := httptest.NewRecorder()
+
+			urls.HandleShortenURLJSON(w, r)
+
+			assert.Equal(t, tc.expectedCode, w.Code, "Код ответа не совпадает с ожидаемым")
+			if tc.bodyIsExpected {
+				assert.NotEmpty(t, w.Body.String(), "Body пустой")
+
+				var result *struct {
+					Result string `json:"result"`
+				}
+				body, _ := io.ReadAll(w.Body)
+				err := json.Unmarshal(body, &result)
+				assert.NoError(t, err, "Coulnd not unmarshal result")
+				assert.NotEmpty(t, result.Result, "Result пустой")
 			}
 		})
 	}
