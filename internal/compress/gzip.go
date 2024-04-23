@@ -5,6 +5,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 type ResponseGzipper struct {
@@ -51,7 +53,6 @@ func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 
 		logger, err := zap.NewDevelopment()
 		sugar := logger.Sugar()
-
 
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
