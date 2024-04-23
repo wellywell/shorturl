@@ -23,7 +23,7 @@ func main() {
 	storage := storage.NewMemory()
 	urls := handlers.NewUrlsHandler(storage, *config)
 
-	r := router.NewRouter(*config, urls, log, compress.RequestUngzipper{}, compress.ResponseGzipper{})
+	r := router.NewRouter(*config, urls, log, compress.RequestUngzipper{})
 
 	err = r.ListenAndServe()
 	if err != nil {
