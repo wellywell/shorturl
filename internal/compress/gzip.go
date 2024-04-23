@@ -67,7 +67,8 @@ func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 		}
 		sugar.Infoln("Accept-Encoding gzip")
 
-		contentType := r.Header.Get("Content-Type")
+		contentType := w.Header().Get("Content-Type")
+		sugar.Infoln(contentType)
 		if !strings.Contains(contentType, "application/json") && !strings.Contains(contentType, "text/html") {
 			sugar.Infoln("Content-Type not to be gzipped")
 			next.ServeHTTP(w, r)

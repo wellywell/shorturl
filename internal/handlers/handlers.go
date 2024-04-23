@@ -94,24 +94,28 @@ func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 	if req.Method != http.MethodPost {
 		http.Error(w, "Wrong method",
 			http.StatusMethodNotAllowed)
+		return
 	}
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		http.Error(w, "Something went wrong",
 			http.StatusInternalServerError)
+		return
 	}
 
 	longURL := string(body)
 	if !url.Validate(longURL) {
 		http.Error(w, "Url must be of length from 1 to 250", // TODO more informative answer
 			http.StatusBadRequest)
+		return
 	}
 
 	shortURL, err := uh.createShortURL(longURL)
 	if err != nil {
 		http.Error(w, "Could not store url",
 			http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("content-type", "text/plain")
@@ -150,16 +154,19 @@ func (uh *UrlsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request
 	if req.Method != http.MethodGet {
 		http.Error(w, "Wrong method",
 			http.StatusMethodNotAllowed)
+		return
 	}
 
 	idString := req.PathValue("id")
 
 	if idString == "" {
 		http.Error(w, "Id not passed", http.StatusBadRequest)
+		return
 	}
 	url, ok := uh.urls.Get(idString)
 	if !ok {
 		http.Error(w, "Not found", http.StatusNotFound)
+		return
 
 	}
 	w.Header().Set("location", url)

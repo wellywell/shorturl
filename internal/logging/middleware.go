@@ -11,6 +11,7 @@ type (
 	responseData struct {
 		status int
 		size   int
+		data []byte
 	}
 
 	loggingResponseWriter struct {
@@ -23,6 +24,7 @@ func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 
 	size, err := r.ResponseWriter.Write(b)
 	r.responseData.size += size
+	r.responseData.data = b
 	return size, err
 }
 
@@ -66,6 +68,8 @@ func (l Logger) Handle(h http.Handler) http.Handler {
 		h.ServeHTTP(&lw, r)
 
 		duration := time.Since(start)
+		l.sugar.Infoln(responseData.data)
+
 
 		l.sugar.Infoln(
 			"uri", r.RequestURI,
