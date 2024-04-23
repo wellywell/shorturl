@@ -49,7 +49,7 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 	if !w.shouldCompress() {
 		sugar.Infoln("Content-Type not to be gzipped")
-		return w.Write(b)
+		return w.ResponseWriter.Write(b)
 	}
     return w.Writer.Write(b)
 }
