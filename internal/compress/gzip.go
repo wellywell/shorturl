@@ -22,6 +22,39 @@ type gzipWriter struct {
 	Writer io.Writer
 }
 
+
+func (w gzipWriter) shouldCompress () bool {
+	contentType := w.Header().Get("Content-Type")
+
+	return strings.Contains(contentType, "application/json") || strings.Contains(contentType, "text/html")
+
+}
+
+
+func (w gzipWriter) WriteHeader(status int) {
+	if w.shouldCompress() {
+		w.Header().Set("Content-Encoding", "gzip")
+
+	}
+	w.ResponseWriter.WriteHeader(status)
+}
+
+
+func (w gzipWriter) Write(b []byte) (int, error) {
+	
+
+	logger, err := zap.NewDevelopment()
+	_ = err
+	sugar := logger.Sugar()
+
+	if !w.shouldCompress() {
+		sugar.Infoln("Content-Type not to be gzipped")
+		return w.Write(b)
+	}
+    return w.Writer.Write(b)
+}
+
+
 func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -67,15 +100,6 @@ func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 		}
 		sugar.Infoln("Accept-Encoding gzip")
 
-		contentType := r.Header.Get("Accept")
-		sugar.Infoln(contentType)
-		if !strings.Contains(contentType, "application/json") && !strings.Contains(contentType, "text/html") {
-			sugar.Infoln("Content-Type not to be gzipped")
-			next.ServeHTTP(w, r)
-			return
-		}
-		sugar.Infoln("Content-Type IS to be gzipped")
-
 		if g.writer == nil {
 			sugar.Infoln("Creating writer")
 			g.writer, err = gzip.NewWriterLevel(w, gzip.BestCompression)
@@ -91,7 +115,6 @@ func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 
 		defer g.writer.Close()
 
-		w.Header().Set("Content-Encoding", "gzip")
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: g.writer}, r)
 	})
 }
