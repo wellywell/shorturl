@@ -44,6 +44,7 @@ func NewLogger() (*Logger, error) {
 	defer logger.Sync()
 
 	sugar := logger.Sugar()
+	sugar.Infoln("rcreating logger")
 	return &Logger{
 		sugar: sugar,
 	}, nil
@@ -52,6 +53,7 @@ func NewLogger() (*Logger, error) {
 func (l Logger) Handle(h http.Handler) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
+		l.sugar.Infoln("Logging middleware")
 
 		responseData := &responseData{
 			status: 0,

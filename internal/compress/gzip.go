@@ -27,6 +27,7 @@ func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 
 		logger, err := zap.NewDevelopment()
 		sugar := logger.Sugar()
+		sugar.Infoln("request ungzip middleware")
 
 		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
@@ -55,6 +56,7 @@ func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 
 		logger, err := zap.NewDevelopment()
 		sugar := logger.Sugar()
+		sugar.Infoln("Response gzip middleware")
 
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
@@ -74,6 +76,7 @@ func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 		if g.writer == nil {
 			sugar.Infoln("Creating writer")
 			g.writer, err = gzip.NewWriterLevel(w, gzip.BestCompression)
+			sugar.Error(err.Error())
 		} else {
 			sugar.Infoln("Resetting writer")
 			g.writer.Reset(w)
