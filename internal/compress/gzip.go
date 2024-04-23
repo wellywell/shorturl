@@ -26,6 +26,7 @@ func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		logger, err := zap.NewDevelopment()
+		_ = err
 		sugar := logger.Sugar()
 		sugar.Infoln("request ungzip middleware")
 
@@ -55,6 +56,7 @@ func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		logger, err := zap.NewDevelopment()
+		_ = err
 		sugar := logger.Sugar()
 		sugar.Infoln("Response gzip middleware")
 
