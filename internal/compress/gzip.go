@@ -76,12 +76,12 @@ func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 		if g.writer == nil {
 			sugar.Infoln("Creating writer")
 			g.writer, err = gzip.NewWriterLevel(w, gzip.BestCompression)
-			sugar.Error(err.Error())
 		} else {
 			sugar.Infoln("Resetting writer")
 			g.writer.Reset(w)
 		}
 		if err != nil {
+			sugar.Error(err.Error())
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
