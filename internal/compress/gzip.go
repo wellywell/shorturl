@@ -31,8 +31,6 @@ func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 			sugar.Infoln("Content-Encoding not gzip")
 			return
 		}
-		var err error
-
 		if u.reader == nil {
 			u.reader, err = gzip.NewReader(r.Body)
 		} else {
@@ -66,7 +64,6 @@ func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		var err error
 
 		if g.writer == nil {
 			g.writer, err = gzip.NewWriterLevel(w, gzip.BestCompression)
