@@ -33,6 +33,8 @@ func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 			sugar.Infoln("Content-Encoding not gzip")
 			return
 		}
+        sugar.Infoln("Content-Encoding gzip")
+
 		if u.reader == nil {
 			u.reader, err = gzip.NewReader(r.Body)
 		} else {
@@ -59,6 +61,7 @@ func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 			sugar.Infoln("Accept-Encoding not gzip")
 			return
 		}
+		sugar.Infoln("Accept-Encoding gzip")
 
 		contentType := r.Header.Get("Content-Type")
 		if !strings.Contains(contentType, "application/json") && !strings.Contains(contentType, "text/html") {
