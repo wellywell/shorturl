@@ -23,8 +23,12 @@ type gzipWriter struct {
 func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		logger, err := zap.NewDevelopment()
+		sugar := logger.Sugar()
+
 		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
+			sugar.Infoln("Content-Encoding not gzip")
 			return
 		}
 		var err error
@@ -47,8 +51,13 @@ func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		logger, err := zap.NewDevelopment()
+		sugar := logger.Sugar()
+
+
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
+			sugar.Infoln("Accept-Encoding not gzip")
 			return
 		}
 
