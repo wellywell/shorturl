@@ -65,13 +65,17 @@ func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 
 		contentType := r.Header.Get("Content-Type")
 		if !strings.Contains(contentType, "application/json") && !strings.Contains(contentType, "text/html") {
+			sugar.Infoln("Content-Type not to be gzipped")
 			next.ServeHTTP(w, r)
 			return
 		}
+		sugar.Infoln("Content-Type IS to be gzipped")
 
 		if g.writer == nil {
+			sugar.Infoln("Creating writer")
 			g.writer, err = gzip.NewWriterLevel(w, gzip.BestCompression)
 		} else {
+			sugar.Infoln("Resetting writer")
 			g.writer.Reset(w)
 		}
 		if err != nil {
