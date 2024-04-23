@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/wellywell/shorturl/internal/compress"
 	"github.com/wellywell/shorturl/internal/config"
 	"github.com/wellywell/shorturl/internal/handlers"
 	"github.com/wellywell/shorturl/internal/logging"
@@ -22,7 +23,7 @@ func main() {
 	storage := storage.NewMemory()
 	urls := handlers.NewUrlsHandler(storage, *config)
 
-	r := router.NewRouter(*config, urls, log)
+	r := router.NewRouter(*config, urls, log, compress.RequestUngzipper{}, compress.ResponseGzipper{})
 
 	err = r.ListenAndServe()
 	if err != nil {
