@@ -19,6 +19,7 @@ type RequestUngzipper struct {
 type gzipWriter struct {
 	http.ResponseWriter
 	compressor *ResponseGzipper
+
 }
 
 func (w gzipWriter) shouldCompress() bool {
@@ -45,33 +46,23 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 		sugar.Infoln("Content-Type not to be gzipped")
 		return w.ResponseWriter.Write(b)
 	}
-<<<<<<< HEAD
-=======
-	sugar.Infoln("Hi")
->>>>>>> e40b384 (try fix)
 
-	compressor := w.compressor
-
-	if compressor.writer == nil {
+	if w.compressor.writer == nil {
 		sugar.Infoln("Creating writer")
-		compressor.writer, err = gzip.NewWriterLevel(w, gzip.BestCompression)
+		w.compressor.writer, err = gzip.NewWriterLevel(w.ResponseWriter, gzip.BestCompression)
 	} else {
 		sugar.Infoln("Resetting writer")
-		compressor.writer.Reset(w)
+		w.compressor.writer.Reset(w.ResponseWriter)
 	}
 	if err != nil {
 		sugar.Error(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return 0, err
 	}
-<<<<<<< HEAD
-=======
-	sugar.Infoln("Bye")
+	sugar.Infoln("Here")
 
->>>>>>> e40b384 (try fix)
-
-	defer compressor.writer.Close()
-	return compressor.writer.Write(b)
+	defer w.compressor.writer.Close()
+	return w.compressor.writer.Write(b)
 }
 
 func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
