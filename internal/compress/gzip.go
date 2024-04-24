@@ -2,7 +2,6 @@ package compress
 
 import (
 	"compress/gzip"
-	"io"
 	"net/http"
 	"strings"
 
@@ -19,17 +18,14 @@ type RequestUngzipper struct {
 
 type gzipWriter struct {
 	http.ResponseWriter
-	Writer io.Writer
+	compressor *ResponseGzipper
 }
 
-
-func (w gzipWriter) shouldCompress () bool {
+func (w gzipWriter) shouldCompress() bool {
 	contentType := w.Header().Get("Content-Type")
-
 	return strings.Contains(contentType, "application/json") || strings.Contains(contentType, "text/html")
 
 }
-
 
 func (w gzipWriter) WriteHeader(status int) {
 	if w.shouldCompress() {
@@ -39,9 +35,7 @@ func (w gzipWriter) WriteHeader(status int) {
 	w.ResponseWriter.WriteHeader(status)
 }
 
-
 func (w gzipWriter) Write(b []byte) (int, error) {
-	
 
 	logger, err := zap.NewDevelopment()
 	_ = err
@@ -51,9 +45,25 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 		sugar.Infoln("Content-Type not to be gzipped")
 		return w.ResponseWriter.Write(b)
 	}
-    return w.Writer.Write(b)
-}
 
+	compressor := w.compressor
+
+	if compressor.writer == nil {
+		sugar.Infoln("Creating writer")
+		compressor.writer, err = gzip.NewWriterLevel(w, gzip.BestCompression)
+	} else {
+		sugar.Infoln("Resetting writer")
+		compressor.writer.Reset(w)
+	}
+	if err != nil {
+		sugar.Error(err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return 0, err
+	}
+
+	defer compressor.writer.Close()
+	return compressor.writer.Write(b)
+}
 
 func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +78,7 @@ func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 			sugar.Infoln("Content-Encoding not gzip")
 			return
 		}
-        sugar.Infoln("Content-Encoding gzip")
+		sugar.Infoln("Content-Encoding gzip")
 
 		if u.reader == nil {
 			u.reader, err = gzip.NewReader(r.Body)
@@ -99,22 +109,6 @@ func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 			return
 		}
 		sugar.Infoln("Accept-Encoding gzip")
-
-		if g.writer == nil {
-			sugar.Infoln("Creating writer")
-			g.writer, err = gzip.NewWriterLevel(w, gzip.BestCompression)
-		} else {
-			sugar.Infoln("Resetting writer")
-			g.writer.Reset(w)
-		}
-		if err != nil {
-			sugar.Error(err.Error())
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		defer g.writer.Close()
-
-		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: g.writer}, r)
+		next.ServeHTTP(gzipWriter{ResponseWriter: w, compressor: &g}, r)
 	})
 }
