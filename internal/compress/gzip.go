@@ -45,6 +45,10 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 		sugar.Infoln("Content-Type not to be gzipped")
 		return w.ResponseWriter.Write(b)
 	}
+<<<<<<< HEAD
+=======
+	sugar.Infoln("Hi")
+>>>>>>> e40b384 (try fix)
 
 	compressor := w.compressor
 
@@ -60,6 +64,11 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return 0, err
 	}
+<<<<<<< HEAD
+=======
+	sugar.Infoln("Bye")
+
+>>>>>>> e40b384 (try fix)
 
 	defer compressor.writer.Close()
 	return compressor.writer.Write(b)
