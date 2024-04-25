@@ -105,8 +105,13 @@ func (f *FileMemory) loadFromFile(file *os.File) error {
 		if err := f.memory.Put(record.ShortURL, record.OriginalURL); err != nil {
 			return err
 		}
+
+		var err error
+		f.lastUuid, err = strconv.Atoi(record.Uuid)
+		if err != nil {
+			return err
+		}
 	}
-	return nil
 }
 
 func (f *FileMemory) Close() error {

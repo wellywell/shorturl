@@ -4,8 +4,6 @@ import (
 	"compress/gzip"
 	"net/http"
 	"strings"
-
-	"go.uber.org/zap"
 )
 
 type ResponseGzipper struct {
@@ -37,28 +35,20 @@ func (w gzipWriter) WriteHeader(status int) {
 
 func (w gzipWriter) Write(b []byte) (int, error) {
 
-	logger, err := zap.NewDevelopment()
-	_ = err
-	sugar := logger.Sugar()
-
 	if !w.shouldCompress() {
-		sugar.Infoln("Content-Type not to be gzipped")
 		return w.ResponseWriter.Write(b)
 	}
 
+	var err error
 	if w.compressor.writer == nil {
-		sugar.Infoln("Creating writer")
 		w.compressor.writer, err = gzip.NewWriterLevel(w.ResponseWriter, gzip.BestCompression)
 	} else {
-		sugar.Infoln("Resetting writer")
 		w.compressor.writer.Reset(w.ResponseWriter)
 	}
 	if err != nil {
-		sugar.Error(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return 0, err
 	}
-	sugar.Infoln("Here")
 
 	defer w.compressor.writer.Close()
 	return w.compressor.writer.Write(b)
@@ -67,18 +57,12 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		logger, err := zap.NewDevelopment()
-		_ = err
-		sugar := logger.Sugar()
-		sugar.Infoln("request ungzip middleware")
-
 		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
-			sugar.Infoln("Content-Encoding not gzip")
 			return
 		}
-		sugar.Infoln("Content-Encoding gzip")
 
+		var err error
 		if u.reader == nil {
 			u.reader, err = gzip.NewReader(r.Body)
 		} else {
@@ -97,17 +81,10 @@ func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		logger, err := zap.NewDevelopment()
-		_ = err
-		sugar := logger.Sugar()
-		sugar.Infoln("Response gzip middleware")
-
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
-			sugar.Infoln("Accept-Encoding not gzip")
 			return
 		}
-		sugar.Infoln("Accept-Encoding gzip")
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, compressor: &g}, r)
 	})
 }
