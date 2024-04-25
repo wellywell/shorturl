@@ -17,19 +17,19 @@ type Storage interface {
 	Get(key string) (val string, ok bool)
 }
 
-type UrlsHandler struct {
+type URLsHandler struct {
 	urls   Storage
 	config config.ServerConfig
 }
 
-func NewUrlsHandler(storage Storage, config config.ServerConfig) *UrlsHandler {
-	return &UrlsHandler{
+func NewURLsHandler(storage Storage, config config.ServerConfig) *URLsHandler {
+	return &URLsHandler{
 		urls:   storage,
 		config: config,
 	}
 }
 
-func (uh *UrlsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Request) {
+func (uh *URLsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(w, "Wrong method",
 			http.StatusMethodNotAllowed)
@@ -55,7 +55,7 @@ func (uh *UrlsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 
 	longURL := data.URL
 	if !url.Validate(longURL) {
-		http.Error(w, "Url must be of length from 1 to 250", // TODO more informative answer
+		http.Error(w, "URL must be of length from 1 to 250", // TODO more informative answer
 			http.StatusBadRequest)
 		return
 	}
@@ -89,7 +89,7 @@ func (uh *UrlsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 	}
 }
 
-func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Request) {
+func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodPost {
 		http.Error(w, "Wrong method",
@@ -106,7 +106,7 @@ func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 
 	longURL := string(body)
 	if !url.Validate(longURL) {
-		http.Error(w, "Url must be of length from 1 to 250", // TODO more informative answer
+		http.Error(w, "URL must be of length from 1 to 250", // TODO more informative answer
 			http.StatusBadRequest)
 		return
 	}
@@ -127,7 +127,7 @@ func (uh *UrlsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 	}
 }
 
-func (uh *UrlsHandler) createShortURL(longURL string) (string, error) {
+func (uh *URLsHandler) createShortURL(longURL string) (string, error) {
 	shortURLID := url.MakeShortURLID(longURL)
 
 	// Handle collisions
@@ -149,7 +149,7 @@ func (uh *UrlsHandler) createShortURL(longURL string) (string, error) {
 	return fmt.Sprintf("%s/%s", uh.config.ShortURLsAddress, shortURLID), nil
 }
 
-func (uh *UrlsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request) {
+func (uh *URLsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodGet {
 		http.Error(w, "Wrong method",

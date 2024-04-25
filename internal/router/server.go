@@ -8,7 +8,7 @@ import (
 	"github.com/wellywell/shorturl/internal/config"
 )
 
-type UrlsHandlers interface {
+type URLsHandlers interface {
 	HandleCreateShortURL(w http.ResponseWriter, req *http.Request)
 	HandleGetFullURL(w http.ResponseWriter, req *http.Request)
 	HandleShortenURLJSON(w http.ResponseWriter, req *http.Request)
@@ -23,7 +23,7 @@ type Router struct {
 	router *chi.Mux
 }
 
-func NewRouter(config config.ServerConfig, handlers UrlsHandlers, middlewares ...Middleware) *Router {
+func NewRouter(config config.ServerConfig, handlers URLsHandlers, middlewares ...Middleware) *Router {
 
 	r := chi.NewRouter()
 

@@ -33,7 +33,7 @@ func TestHandleCreateShortURL(t *testing.T) {
 	}
 
 	storage := storage.NewMemory()
-	urls := &UrlsHandler{urls: storage, config: mockConfig}
+	urls := &URLsHandler{urls: storage, config: mockConfig}
 
 	for _, tc := range testCases {
 		t.Run(tc.method, func(t *testing.T) {
@@ -66,7 +66,7 @@ func TestHandleShortenURLJSON(t *testing.T) {
 	}
 
 	storage := storage.NewMemory()
-	urls := &UrlsHandler{urls: storage, config: mockConfig}
+	urls := &URLsHandler{urls: storage, config: mockConfig}
 
 	for _, tc := range testCases {
 		t.Run(tc.method, func(t *testing.T) {
@@ -94,7 +94,7 @@ func TestHandleShortenURLJSON(t *testing.T) {
 func TestHandleGetFullURL(t *testing.T) {
 
 	storage := storage.NewMemory()
-	urls := &UrlsHandler{urls: storage, config: mockConfig}
+	urls := &URLsHandler{urls: storage, config: mockConfig}
 
 	// Create short url
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader("http://something.com"))

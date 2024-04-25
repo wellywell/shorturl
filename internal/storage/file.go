@@ -13,8 +13,8 @@ type MemoryStorage interface {
 	Get(key string) (val string, ok bool)
 }
 
-type UrlRecord struct {
-	Uuid        string `json:"uuid"`
+type URLRecord struct {
+	UUID        string `json:"uuid"`
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
 }
@@ -23,7 +23,7 @@ type FileMemory struct {
 	file     *os.File
 	writer   *bufio.Writer
 	memory   MemoryStorage
-	lastUuid int
+	lastUUID int
 	lock     sync.RWMutex
 }
 
@@ -64,10 +64,10 @@ func (f *FileMemory) writeToFile(key string, val string) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
-	nextUuid := f.lastUuid + 1
+	nextUUID := f.lastUUID + 1
 
-	record := UrlRecord{
-		Uuid:        strconv.Itoa(nextUuid),
+	record := URLRecord{
+		UUID:        strconv.Itoa(nextUUID),
 		ShortURL:    key,
 		OriginalURL: val,
 	}
@@ -84,7 +84,7 @@ func (f *FileMemory) writeToFile(key string, val string) error {
 	if err := f.writer.WriteByte('\n'); err != nil {
 		return err
 	}
-	f.lastUuid = nextUuid
+	f.lastUUID = nextUUID
 
 	return f.writer.Flush()
 }
@@ -98,7 +98,7 @@ func (f *FileMemory) loadFromFile(file *os.File) error {
 		}
 		data := scanner.Bytes()
 
-		record := UrlRecord{}
+		record := URLRecord{}
 		if err := json.Unmarshal(data, &record); err != nil {
 			return err
 		}
@@ -107,7 +107,7 @@ func (f *FileMemory) loadFromFile(file *os.File) error {
 		}
 
 		var err error
-		f.lastUuid, err = strconv.Atoi(record.Uuid)
+		f.lastUUID, err = strconv.Atoi(record.UUID)
 		if err != nil {
 			return err
 		}

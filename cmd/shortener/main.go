@@ -26,7 +26,7 @@ func main() {
 	}
 	defer storage.Close()
 
-	urls := handlers.NewUrlsHandler(storage, *conf)
+	urls := handlers.NewURLsHandler(storage, *conf)
 
 	r := router.NewRouter(*conf, urls, log, compress.RequestUngzipper{}, compress.ResponseGzipper{})
 
