@@ -16,14 +16,19 @@ func main() {
 		panic(err)
 	}
 
-	config, err := config.NewConfig()
+	conf, err := config.NewConfig()
 	if err != nil {
 		panic(err)
 	}
-	storage := storage.NewMemory()
-	urls := handlers.NewUrlsHandler(storage, *config)
+	storage, err := storage.NewFileMemory(conf.FileStoragePath, storage.NewMemory())
+	if err != nil {
+		panic(err)
+	}
+	defer storage.Close()
 
-	r := router.NewRouter(*config, urls, log, compress.RequestUngzipper{}, compress.ResponseGzipper{})
+	urls := handlers.NewUrlsHandler(storage, *conf)
+
+	r := router.NewRouter(*conf, urls, log, compress.RequestUngzipper{}, compress.ResponseGzipper{})
 
 	err = r.ListenAndServe()
 	if err != nil {

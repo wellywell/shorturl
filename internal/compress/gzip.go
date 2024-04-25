@@ -19,7 +19,6 @@ type RequestUngzipper struct {
 type gzipWriter struct {
 	http.ResponseWriter
 	compressor *ResponseGzipper
-
 }
 
 func (w gzipWriter) shouldCompress() bool {
