@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/jackc/pgx/v5"
 
 	"github.com/wellywell/shorturl/internal/config"
 	"github.com/wellywell/shorturl/internal/storage"
@@ -171,4 +174,22 @@ func (uh *URLsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request
 	}
 	w.Header().Set("location", url)
 	w.WriteHeader(http.StatusTemporaryRedirect)
+}
+
+func (uh *URLsHandler) HandlePing(w http.ResponseWriter, req *http.Request) {
+
+	if uh.config.DatabaseDSN == "" {
+		http.Error(w, "Empty connection string",
+			http.StatusInternalServerError)
+		return
+	}
+
+	conn, err := pgx.Connect(context.Background(), uh.config.DatabaseDSN)
+	if err != nil {
+		http.Error(w, "Database unaccessable",
+			http.StatusInternalServerError)
+		return
+	}
+	defer conn.Close(context.Background())
+	w.WriteHeader(http.StatusOK)
 }

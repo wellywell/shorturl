@@ -12,6 +12,7 @@ type URLsHandlers interface {
 	HandleCreateShortURL(w http.ResponseWriter, req *http.Request)
 	HandleGetFullURL(w http.ResponseWriter, req *http.Request)
 	HandleShortenURLJSON(w http.ResponseWriter, req *http.Request)
+	HandlePing(w http.ResponseWriter, req *http.Request)
 }
 
 type Middleware interface {
@@ -34,6 +35,7 @@ func NewRouter(config config.ServerConfig, handlers URLsHandlers, middlewares ..
 	r.Post("/", handlers.HandleCreateShortURL)
 	r.Get("/{id}", handlers.HandleGetFullURL)
 	r.Post("/api/shorten", handlers.HandleShortenURLJSON)
+	r.Get("/ping", handlers.HandlePing)
 
 	return &Router{router: r, config: config}
 }
