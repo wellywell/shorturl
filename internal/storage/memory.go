@@ -1,17 +1,9 @@
 package storage
 
 import (
-	"fmt"
+	"context"
 	"sync"
 )
-
-type KeyExistsError struct {
-	Key string
-}
-
-func (e *KeyExistsError) Error() string {
-	return fmt.Sprintf("Key %s already exists with different value", e.Key)
-}
 
 type Memory struct {
 	urls map[string]string
@@ -24,14 +16,17 @@ func NewMemory() *Memory {
 	}
 }
 
-func (m *Memory) Get(key string) (string, bool) {
+func (m *Memory) Get(ctx context.Context, key string) (string, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	v, ok := m.urls[key]
-	return v, ok
+	if !ok {
+		return "", &KeyNotFoundError{Key: key}
+	}
+	return v, nil
 }
 
-func (m *Memory) Put(key string, val string) error {
+func (m *Memory) Put(ctx context.Context, key string, val string) error {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
 	v, exists := m.urls[key]
@@ -39,5 +34,9 @@ func (m *Memory) Put(key string, val string) error {
 		return &KeyExistsError{Key: key}
 	}
 	m.urls[key] = val
+	return nil
+}
+
+func (f *Memory) Close() error {
 	return nil
 }

@@ -16,8 +16,8 @@ import (
 )
 
 type Storage interface {
-	Put(key string, val string) error
-	Get(key string) (val string, ok bool)
+	Put(ctx context.Context, key string, val string) error
+	Get(ctx context.Context, key string) (string, error)
 }
 
 type URLsHandler struct {
@@ -63,7 +63,7 @@ func (uh *URLsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	shortURL, err := uh.createShortURL(longURL)
+	shortURL, err := uh.createShortURL(req.Context(), longURL)
 	if err != nil {
 		http.Error(w, "Could not store url",
 			http.StatusInternalServerError)
@@ -114,7 +114,7 @@ func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	shortURL, err := uh.createShortURL(longURL)
+	shortURL, err := uh.createShortURL(req.Context(), longURL)
 	if err != nil {
 		http.Error(w, "Could not store url",
 			http.StatusInternalServerError)
@@ -130,12 +130,12 @@ func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 	}
 }
 
-func (uh *URLsHandler) createShortURL(longURL string) (string, error) {
+func (uh *URLsHandler) createShortURL(ctx context.Context, longURL string) (string, error) {
 	shortURLID := url.MakeShortURLID(longURL)
 
 	// Handle collisions
 	for {
-		err := uh.urls.Put(shortURLID, longURL)
+		err := uh.urls.Put(ctx, shortURLID, longURL)
 		if err == nil {
 			break
 		}
@@ -166,11 +166,18 @@ func (uh *URLsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request
 		http.Error(w, "Id not passed", http.StatusBadRequest)
 		return
 	}
-	url, ok := uh.urls.Get(idString)
-	if !ok {
+	url, err := uh.urls.Get(req.Context(), idString)
+
+	var keyNotFound *storage.KeyNotFoundError
+	if err != nil && errors.As(err, &keyNotFound) {
 		http.Error(w, "Not found", http.StatusNotFound)
 		return
 
+	}
+	if err != nil {
+		http.Error(w, "Something went wrong",
+			http.StatusInternalServerError)
+		return
 	}
 	w.Header().Set("location", url)
 	w.WriteHeader(http.StatusTemporaryRedirect)
@@ -178,18 +185,12 @@ func (uh *URLsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request
 
 func (uh *URLsHandler) HandlePing(w http.ResponseWriter, req *http.Request) {
 
-	if uh.config.DatabaseDSN == "" {
-		http.Error(w, "Empty connection string",
-			http.StatusInternalServerError)
-		return
-	}
-
-	conn, err := pgx.Connect(context.Background(), uh.config.DatabaseDSN)
+	conn, err := pgx.Connect(req.Context(), uh.config.DatabaseDSN)
 	if err != nil {
 		http.Error(w, "Database unaccessable",
 			http.StatusInternalServerError)
 		return
 	}
-	defer conn.Close(context.Background())
+	defer conn.Close(req.Context())
 	w.WriteHeader(http.StatusOK)
 }

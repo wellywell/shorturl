@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"os"
 	"strconv"
@@ -9,8 +10,8 @@ import (
 )
 
 type MemoryStorage interface {
-	Put(key string, val string) error
-	Get(key string) (val string, ok bool)
+	Put(ctx context.Context, key string, val string) error
+	Get(ctx context.Context, key string) (string, error)
 }
 
 type URLRecord struct {
@@ -45,9 +46,9 @@ func NewFileMemory(path string, memory MemoryStorage) (*FileMemory, error) {
 	return &storage, nil
 }
 
-func (f *FileMemory) Put(key string, val string) error {
+func (f *FileMemory) Put(ctx context.Context, key string, val string) error {
 
-	if err := f.memory.Put(key, val); err != nil {
+	if err := f.memory.Put(ctx, key, val); err != nil {
 		return err
 	}
 	if err := f.writeToFile(key, val); err != nil {
@@ -56,8 +57,8 @@ func (f *FileMemory) Put(key string, val string) error {
 	return nil
 }
 
-func (f *FileMemory) Get(key string) (string, bool) {
-	return f.memory.Get(key)
+func (f *FileMemory) Get(ctx context.Context, key string) (string, error) {
+	return f.memory.Get(ctx, key)
 }
 
 func (f *FileMemory) writeToFile(key string, val string) error {
@@ -92,6 +93,8 @@ func (f *FileMemory) writeToFile(key string, val string) error {
 func (f *FileMemory) loadFromFile(file *os.File) error {
 	scanner := bufio.NewScanner(file)
 
+	ctx := context.Background()
+
 	for {
 		if !scanner.Scan() {
 			return scanner.Err()
@@ -102,7 +105,7 @@ func (f *FileMemory) loadFromFile(file *os.File) error {
 		if err := json.Unmarshal(data, &record); err != nil {
 			return err
 		}
-		if err := f.memory.Put(record.ShortURL, record.OriginalURL); err != nil {
+		if err := f.memory.Put(ctx, record.ShortURL, record.OriginalURL); err != nil {
 			return err
 		}
 
