@@ -37,6 +37,6 @@ func (m *Memory) Put(ctx context.Context, key string, val string) error {
 	return nil
 }
 
-func (f *Memory) Close() error {
+func (m *Memory) Close() error {
 	return nil
 }
