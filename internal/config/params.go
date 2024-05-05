@@ -25,7 +25,7 @@ func NewConfig() (*ServerConfig, error) {
 	flag.StringVar(&commandLineParams.BaseAddress, "a", "localhost:8080", "Base address to listen on")
 	flag.StringVar(&commandLineParams.ShortURLsAddress, "b", "http://localhost:8080", "Short URLs base address")
 	flag.StringVar(&commandLineParams.FileStoragePath, "f", "/tmp/short-url-db.json", "Path to file to store urls")
-	flag.StringVar(&commandLineParams.DatabaseDSN, "d", "postgres://postgres:postgres@localhost:5432/postgres", "Database DSN")
+	flag.StringVar(&commandLineParams.DatabaseDSN, "d", "", "Database DSN")
 	flag.Parse()
 
 	if params.BaseAddress == "" {
