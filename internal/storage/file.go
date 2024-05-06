@@ -57,6 +57,15 @@ func (f *FileMemory) Put(ctx context.Context, key string, val string) error {
 	return nil
 }
 
+func (f *FileMemory) PutBatch(ctx context.Context, records ...KeyValue) error {
+	for _, rec := range records {
+		if err := f.Put(ctx, rec.Key, rec.Value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (f *FileMemory) Get(ctx context.Context, key string) (string, error) {
 	return f.memory.Get(ctx, key)
 }

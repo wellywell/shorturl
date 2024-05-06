@@ -47,6 +47,16 @@ func (d *Database) Put(ctx context.Context, key string, val string) error {
 	return err
 }
 
+func (d *Database) PutBatch(ctx context.Context, records ...KeyValue) error {
+	batch := &pgx.Batch{}
+
+	for _, rec := range records {
+		batch.Queue("INSERT INTO link (short_link, full_link) VALUES ($1, $2)", rec.Key, rec.Value)
+	}
+	br := d.pool.SendBatch(ctx, batch)
+	return br.Close()
+}
+
 func (d *Database) Get(ctx context.Context, key string) (string, error) {
 	row := d.pool.QueryRow(ctx, "SELECT full_link FROM link WHERE short_link = $1", key)
 

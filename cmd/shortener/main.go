@@ -14,6 +14,7 @@ import (
 type Storage interface {
 	Put(ctx context.Context, key string, val string) error
 	Get(ctx context.Context, key string) (string, error)
+	PutBatch(ctx context.Context, records ...storage.KeyValue) error
 	Close() error
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -18,6 +17,7 @@ import (
 type Storage interface {
 	Put(ctx context.Context, key string, val string) error
 	Get(ctx context.Context, key string) (string, error)
+	PutBatch(ctx context.Context, records ...storage.KeyValue) error
 }
 
 type URLsHandler struct {
@@ -92,6 +92,81 @@ func (uh *URLsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 	}
 }
 
+func (uh *URLsHandler) HandleShortenBatch(w http.ResponseWriter, req *http.Request) {
+
+	if req.Method != http.MethodPost {
+		http.Error(w, "Wrong method",
+			http.StatusMethodNotAllowed)
+		return
+	}
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(w, "Something went wrong",
+			http.StatusInternalServerError)
+		return
+	}
+
+	type inData struct {
+		CorrelationID string `json:"correlation_id"`
+		OriginalURL   string `json:"original_url"`
+	}
+	var requestData []inData
+
+	err = json.Unmarshal(body, &requestData)
+	if err != nil {
+		http.Error(w, "Could not parse body",
+			http.StatusBadRequest)
+		return
+	}
+
+	type outData struct {
+		CorrelationID string `json:"correlation_id"`
+		ShortURL      string `json:"short_url"`
+	}
+	respData := make([]outData, len(requestData))
+
+	w.Header().Set("content-type", "application/json")
+
+	if len(requestData) > 0 {
+
+		records := make([]storage.KeyValue, len(requestData))
+
+		for i, data := range requestData {
+			shortURLID := url.MakeShortURLID(data.OriginalURL)
+
+			respData[i] = outData{
+				CorrelationID: data.CorrelationID,
+				ShortURL:      url.FormatShortURL(uh.config.ShortURLsAddress, shortURLID),
+			}
+			records[i] = storage.KeyValue{
+				Key:   shortURLID,
+				Value: data.OriginalURL,
+			}
+		}
+		err := uh.urls.PutBatch(req.Context(), records...)
+		if err != nil {
+			// В случае возникновения коллизий тут, завершаемся с ошибкой
+			http.Error(w, "Could not store values",
+				http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
+	response, err := json.Marshal(respData)
+	if err != nil {
+		http.Error(w, "Could not serialize result",
+			http.StatusInternalServerError)
+		return
+	}
+	_, err = w.Write(response)
+	if err != nil {
+		http.Error(w, "Something went wrong",
+			http.StatusInternalServerError)
+	}
+}
+
 func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodPost {
@@ -149,7 +224,7 @@ func (uh *URLsHandler) createShortURL(ctx context.Context, longURL string) (stri
 		}
 
 	}
-	return fmt.Sprintf("%s/%s", uh.config.ShortURLsAddress, shortURLID), nil
+	return url.FormatShortURL(uh.config.ShortURLsAddress, shortURLID), nil
 }
 
 func (uh *URLsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request) {

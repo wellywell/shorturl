@@ -37,6 +37,15 @@ func (m *Memory) Put(ctx context.Context, key string, val string) error {
 	return nil
 }
 
+func (m *Memory) PutBatch(ctx context.Context, records ...KeyValue) error {
+	for _, rec := range records {
+		if err := m.Put(ctx, rec.Key, rec.Value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (m *Memory) Close() error {
 	return nil
 }
