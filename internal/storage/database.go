@@ -3,7 +3,9 @@ package storage
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -29,6 +31,10 @@ func NewDatabase(connString string) (*Database, error) {
 	if err != nil {
 		return nil, err
 	}
+	_, err = p.Exec(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS full_link_indx ON link(full_link)")
+	if err != nil {
+		return nil, err
+	}
 	return &Database{
 		pool: p,
 	}, nil
@@ -36,15 +42,33 @@ func NewDatabase(connString string) (*Database, error) {
 }
 
 func (d *Database) Put(ctx context.Context, key string, val string) error {
-	_, err := d.pool.Exec(ctx, "INSERT INTO link (short_link, full_link) VALUES ($1, $2)", key, val)
 
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		if pgErr.Code == UniqueViolationErr {
-			return &KeyExistsError{Key: key}
+	query := `
+		WITH inserted AS
+			(INSERT INTO link (short_link, full_link)
+			 VALUES ($1, $2)
+			 ON CONFLICT(full_link) DO NOTHING
+			 RETURNING short_link)
+		SELECT COALESCE (
+			(SELECT short_link FROM inserted),
+			(SELECT short_link FROM link WHERE full_link = $2)
+		)`
+
+	row := d.pool.QueryRow(ctx, query, key, val)
+
+	var shortURL string
+	if err := row.Scan(&shortURL); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
+			return fmt.Errorf("%w", &KeyExistsError{Key: key})
 		}
+		return err
 	}
-	return err
+	// if shortURL returned by DB differes from key, handle dublicate full_link
+	if shortURL != key {
+		return fmt.Errorf("%w", &ValueExistsError{Value: val, ExistingKey: shortURL})
+	}
+	return nil
 }
 
 func (d *Database) PutBatch(ctx context.Context, records ...KeyValue) error {
@@ -64,7 +88,7 @@ func (d *Database) Get(ctx context.Context, key string) (string, error) {
 	err := row.Scan(&URL)
 
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
-		return "", &KeyNotFoundError{Key: key}
+		return "", fmt.Errorf("%w", &KeyNotFoundError{Key: key})
 	}
 	if err != nil {
 		return "", err

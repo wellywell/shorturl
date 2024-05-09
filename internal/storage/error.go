@@ -23,3 +23,12 @@ type KeyNotFoundError struct {
 func (e *KeyNotFoundError) Error() string {
 	return fmt.Sprintf("Key %s not found", e.Key)
 }
+
+type ValueExistsError struct {
+	Value       string
+	ExistingKey string
+}
+
+func (e *ValueExistsError) Error() string {
+	return fmt.Sprintf("Value %s already exists", e.Value)
+}

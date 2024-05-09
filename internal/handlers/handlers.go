@@ -63,7 +63,7 @@ func (uh *URLsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	shortURL, err := uh.createShortURL(req.Context(), longURL)
+	shortURL, isCreated, err := uh.getShortURL(req.Context(), longURL)
 	if err != nil {
 		http.Error(w, "Could not store url",
 			http.StatusInternalServerError)
@@ -84,7 +84,12 @@ func (uh *URLsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 	}
 
 	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+
+	if isCreated {
+		w.WriteHeader(http.StatusCreated)
+	} else {
+		w.WriteHeader(http.StatusConflict)
+	}
 	_, err = w.Write(response)
 	if err != nil {
 		http.Error(w, "Something went wrong",
@@ -189,7 +194,7 @@ func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	shortURL, err := uh.createShortURL(req.Context(), longURL)
+	shortURL, isCreated, err := uh.getShortURL(req.Context(), longURL)
 	if err != nil {
 		http.Error(w, "Could not store url",
 			http.StatusInternalServerError)
@@ -197,7 +202,12 @@ func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 	}
 
 	w.Header().Set("content-type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
+	if isCreated {
+		w.WriteHeader(http.StatusCreated)
+	} else {
+		w.WriteHeader(http.StatusConflict)
+	}
+
 	_, err = w.Write([]byte(shortURL))
 	if err != nil {
 		http.Error(w, "Something went wrong",
@@ -205,7 +215,7 @@ func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 	}
 }
 
-func (uh *URLsHandler) createShortURL(ctx context.Context, longURL string) (string, error) {
+func (uh *URLsHandler) getShortURL(ctx context.Context, longURL string) (URL string, isCreated bool, err error) {
 	shortURLID := url.MakeShortURLID(longURL)
 
 	// Handle collisions
@@ -216,15 +226,17 @@ func (uh *URLsHandler) createShortURL(ctx context.Context, longURL string) (stri
 		}
 
 		var keyExists *storage.KeyExistsError
+		var valueExists *storage.ValueExistsError
 		if errors.As(err, &keyExists) {
 			// сгенерить новую ссылку и попробовать заново
 			shortURLID = url.MakeShortURLID(longURL)
+		} else if errors.As(err, &valueExists) {
+			return url.FormatShortURL(uh.config.ShortURLsAddress, valueExists.ExistingKey), false, nil
 		} else {
-			return "", err
+			return "", false, err
 		}
-
 	}
-	return url.FormatShortURL(uh.config.ShortURLsAddress, shortURLID), nil
+	return url.FormatShortURL(uh.config.ShortURLsAddress, shortURLID), true, nil
 }
 
 func (uh *URLsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request) {

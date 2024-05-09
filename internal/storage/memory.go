@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"fmt"
 	"sync"
 )
 
@@ -21,7 +22,7 @@ func (m *Memory) Get(ctx context.Context, key string) (string, error) {
 	defer m.lock.RUnlock()
 	v, ok := m.urls[key]
 	if !ok {
-		return "", &KeyNotFoundError{Key: key}
+		return "", fmt.Errorf("%w", &KeyNotFoundError{Key: key})
 	}
 	return v, nil
 }
@@ -31,7 +32,7 @@ func (m *Memory) Put(ctx context.Context, key string, val string) error {
 	defer m.lock.RUnlock()
 	v, exists := m.urls[key]
 	if exists && v != val {
-		return &KeyExistsError{Key: key}
+		return fmt.Errorf("%w", &KeyExistsError{Key: key})
 	}
 	m.urls[key] = val
 	return nil
