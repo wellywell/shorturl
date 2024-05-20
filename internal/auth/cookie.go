@@ -4,12 +4,12 @@ import (
 	"net/http"
 )
 
-const COOKIE_NAME = "_user"
+const userCookie = "_user"
 
 func VerifyUser(r *http.Request) (int, error) {
-	cookie, err := r.Cookie(COOKIE_NAME)
+	cookie, err := r.Cookie(userCookie)
 	if err == nil {
-		userID, err := GetUserId(cookie.Value)
+		userID, err := GetUserID(cookie.Value)
 		if err != nil {
 			return -1, err
 		}
@@ -24,7 +24,7 @@ func SetAuthCookie(userID int, w http.ResponseWriter) error {
 	if err != nil {
 		return err
 	}
-	cookie := &http.Cookie{Name: COOKIE_NAME, Value: token}
+	cookie := &http.Cookie{Name: userCookie, Value: token}
 	http.SetCookie(w, cookie)
 	return nil
 }

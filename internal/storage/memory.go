@@ -6,20 +6,20 @@ import (
 	"sync"
 )
 
-type FullUrlData struct {
+type FullURLData  struct {
 	UserID  int
 	FullURL string
 }
 
 type Memory struct {
-	urls      map[string]FullUrlData
+	urls      map[string]FullURLData 
 	maxUserID int
 	lock      sync.RWMutex
 }
 
 func NewMemory() *Memory {
 	return &Memory{
-		urls:      make(map[string]FullUrlData),
+		urls:      make(map[string]FullURLData ),
 		maxUserID: 0,
 	}
 }
@@ -41,7 +41,7 @@ func (m *Memory) Put(ctx context.Context, key string, val string, user int) erro
 	if exists && v.FullURL != val {
 		return fmt.Errorf("%w", &KeyExistsError{Key: key})
 	}
-	m.urls[key] = FullUrlData{FullURL: val, UserID: user}
+	m.urls[key] = FullURLData {FullURL: val, UserID: user}
 	if user > m.maxUserID {
 		m.maxUserID = user
 	}
