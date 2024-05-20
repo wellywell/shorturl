@@ -1,0 +1,102 @@
+package storage
+
+import (
+	"context"
+	"errors"
+	"fmt"
+
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type Database struct {
+	pool *pgxpool.Pool
+}
+
+func NewDatabase(connString string) (*Database, error) {
+
+	ctx := context.Background()
+	p, err := pgxpool.New(ctx, connString)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.Exec(ctx, "CREATE TABLE IF NOT EXISTS link (id bigserial, short_link text, full_link text)")
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.Exec(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS shortlink_indx ON link(short_link)")
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.Exec(ctx, "CREATE UNIQUE INDEX IF NOT EXISTS full_link_indx ON link(full_link)")
+	if err != nil {
+		return nil, err
+	}
+	return &Database{
+		pool: p,
+	}, nil
+
+}
+
+func (d *Database) Put(ctx context.Context, key string, val string) error {
+
+	query := `
+		WITH inserted AS
+			(INSERT INTO link (short_link, full_link)
+			 VALUES ($1, $2)
+			 ON CONFLICT(full_link) DO NOTHING
+			 RETURNING short_link)
+		SELECT COALESCE (
+			(SELECT short_link FROM inserted),
+			(SELECT short_link FROM link WHERE full_link = $2)
+		)`
+
+	row := d.pool.QueryRow(ctx, query, key, val)
+
+	var shortURL string
+	if err := row.Scan(&shortURL); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgerrcode.IsIntegrityConstraintViolation(pgErr.Code) {
+			return fmt.Errorf("%w", &KeyExistsError{Key: key})
+		}
+		return err
+	}
+	// if shortURL returned by DB differes from key, handle dublicate full_link
+	if shortURL != key {
+		return fmt.Errorf("%w", &ValueExistsError{Value: val, ExistingKey: shortURL})
+	}
+	return nil
+}
+
+func (d *Database) PutBatch(ctx context.Context, records ...KeyValue) error {
+	batch := &pgx.Batch{}
+
+	for _, rec := range records {
+		batch.Queue("INSERT INTO link (short_link, full_link) VALUES ($1, $2)", rec.Key, rec.Value)
+	}
+	br := d.pool.SendBatch(ctx, batch)
+	return br.Close()
+}
+
+func (d *Database) Get(ctx context.Context, key string) (string, error) {
+	row := d.pool.QueryRow(ctx, "SELECT full_link FROM link WHERE short_link = $1", key)
+
+	var URL string
+	err := row.Scan(&URL)
+
+	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+		return "", fmt.Errorf("%w", &KeyNotFoundError{Key: key})
+	}
+	if err != nil {
+		return "", err
+	}
+	return URL, nil
+}
+
+func (d *Database) Close() error {
+	d.pool.Close()
+	return nil
+}

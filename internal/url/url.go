@@ -1,6 +1,7 @@
 package url
 
 import (
+	"fmt"
 	"math/rand"
 	"strings"
 )
@@ -20,4 +21,8 @@ func MakeShortURLID(longURL string) (shortURL string) {
 
 func Validate(url string) bool {
 	return len(url) > 0 && len(url) < 250
+}
+
+func FormatShortURL(base string, ID string) string {
+	return fmt.Sprintf("%s/%s", base, ID)
 }

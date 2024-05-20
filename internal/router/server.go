@@ -4,14 +4,20 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/wellywell/shorturl/internal/config"
 )
 
-type UrlsHandlers interface {
+type URLsHandlers interface {
 	HandleCreateShortURL(w http.ResponseWriter, req *http.Request)
 	HandleGetFullURL(w http.ResponseWriter, req *http.Request)
+	HandleShortenURLJSON(w http.ResponseWriter, req *http.Request)
+	HandlePing(w http.ResponseWriter, req *http.Request)
+	HandleShortenBatch(w http.ResponseWriter, req *http.Request)
+}
+
+type Middleware interface {
+	Handle(h http.Handler) http.Handler
 }
 
 type Router struct {
@@ -19,19 +25,25 @@ type Router struct {
 	router *chi.Mux
 }
 
-func NewRouter(config config.ServerConfig, handlers UrlsHandlers) *Router {
+func NewRouter(config config.ServerConfig, handlers URLsHandlers, middlewares ...Middleware) *Router {
 
 	r := chi.NewRouter()
 
+	for _, m := range middlewares {
+		r.Use(m.Handle)
+	}
+
 	r.Post("/", handlers.HandleCreateShortURL)
 	r.Get("/{id}", handlers.HandleGetFullURL)
+	r.Post("/api/shorten", handlers.HandleShortenURLJSON)
+	r.Get("/ping", handlers.HandlePing)
+	r.Post("/api/shorten/batch", handlers.HandleShortenBatch)
 
 	return &Router{router: r, config: config}
 }
 
 func (r *Router) ListenAndServe() error {
 	addr := r.config.BaseAddress
-	log.Infof("Starting server listening on: %s", addr)
 	err := http.ListenAndServe(addr, r.router)
 	return err
 }
