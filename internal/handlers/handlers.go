@@ -345,6 +345,7 @@ func (uh *URLsHandler) HandleUserURLS(w http.ResponseWriter, req *http.Request) 
 			http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("content-type", "application/json")
 	_, err = w.Write(response)
 	if err != nil {
 		http.Error(w, "Something went wrong",

@@ -11,7 +11,7 @@ type Claims struct {
 	UserID int
 }
 
-const SECRET_KEY = "secret"
+const secret = "secret"
 
 func BuildJWTString(userID int) (string, error) {
 
@@ -21,7 +21,7 @@ func BuildJWTString(userID int) (string, error) {
 		UserID: userID,
 	})
 
-	tokenString, err := token.SignedString([]byte(SECRET_KEY))
+	tokenString, err := token.SignedString([]byte(secret))
 	if err != nil {
 		return "", err
 	}
@@ -36,7 +36,7 @@ func GetUserID(tokenString string) (int, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 			}
-			return []byte(SECRET_KEY), nil
+			return []byte(secret), nil
 		})
 	if err != nil {
 		return -1, err
