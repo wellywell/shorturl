@@ -12,9 +12,11 @@ import (
 )
 
 type Storage interface {
-	Put(ctx context.Context, key string, val string) error
+	Put(ctx context.Context, key string, val string, user int) error
 	Get(ctx context.Context, key string) (string, error)
-	PutBatch(ctx context.Context, records ...storage.KeyValue) error
+	PutBatch(ctx context.Context, records ...storage.URLRecord) error
+	CreateNewUser(ctx context.Context) (int, error)
+	GetUserURLS(ctx context.Context, userID int) ([]storage.URLRecord, error)
 	Close() error
 }
 
