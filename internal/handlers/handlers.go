@@ -328,7 +328,7 @@ func (uh *URLsHandler) HandleUserURLS(w http.ResponseWriter, req *http.Request) 
 	}
 	type outData struct {
 		ShortURL    string `json:"short_url"`
-		OriginalURL string `json:"original_urll"`
+		OriginalURL string `json:"original_url"`
 	}
 	respData := make([]outData, len(urls))
 
