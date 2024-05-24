@@ -24,14 +24,16 @@ type Storage interface {
 }
 
 type URLsHandler struct {
-	urls   Storage
-	config config.ServerConfig
+	urls        Storage
+	config      config.ServerConfig
+	deleteQueue chan storage.ToDelete
 }
 
-func NewURLsHandler(storage Storage, config config.ServerConfig) *URLsHandler {
+func NewURLsHandler(storage Storage, queue chan storage.ToDelete, config config.ServerConfig) *URLsHandler {
 	return &URLsHandler{
-		urls:   storage,
-		config: config,
+		urls:        storage,
+		deleteQueue: queue,
+		config:      config,
 	}
 }
 
@@ -276,13 +278,17 @@ func (uh *URLsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request
 	}
 	url, err := uh.urls.Get(req.Context(), idString)
 
-	var keyNotFound *storage.KeyNotFoundError
-	if err != nil && errors.As(err, &keyNotFound) {
-		http.Error(w, "Not found", http.StatusNotFound)
-		return
-
-	}
 	if err != nil {
+		var keyNotFound *storage.KeyNotFoundError
+		if errors.As(err, &keyNotFound) {
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
+		var keyDeleted *storage.RecordIsDeleted
+		if errors.As(err, &keyDeleted) {
+			http.Error(w, "Gone", http.StatusGone)
+			return
+		}
 		http.Error(w, "Something went wrong",
 			http.StatusInternalServerError)
 		return
@@ -301,6 +307,39 @@ func (uh *URLsHandler) HandlePing(w http.ResponseWriter, req *http.Request) {
 	}
 	defer conn.Close(req.Context())
 	w.WriteHeader(http.StatusOK)
+}
+
+func (uh *URLsHandler) HandleDeleteUserURLS(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodDelete {
+		http.Error(w, "Wrong method",
+			http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, err := auth.VerifyUser(req)
+	if err != nil {
+		http.Error(w, "Authorize error", http.StatusUnauthorized)
+		return
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(w, "Something went wrong",
+			http.StatusInternalServerError)
+		return
+	}
+
+	var requestData []string
+	err = json.Unmarshal(body, &requestData)
+	if err != nil {
+		http.Error(w, "Could not parse body",
+			http.StatusBadRequest)
+		return
+	}
+	for _, rec := range requestData {
+		uh.deleteQueue <- storage.ToDelete{UserID: userID, ShortURL: rec}
+	}
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (uh *URLsHandler) HandleUserURLS(w http.ResponseWriter, req *http.Request) {

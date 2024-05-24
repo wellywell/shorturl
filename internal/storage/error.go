@@ -32,3 +32,11 @@ type ValueExistsError struct {
 func (e *ValueExistsError) Error() string {
 	return fmt.Sprintf("Value %s already exists", e.Value)
 }
+
+type RecordIsDeleted struct {
+	Key string
+}
+
+func (e *RecordIsDeleted) Error() string {
+	return fmt.Sprintf("Record is deleted %s", e.Key)
+}

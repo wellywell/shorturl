@@ -23,7 +23,7 @@ func NewDatabase(connString string) (*Database, error) {
 		return nil, err
 	}
 
-	_, err = p.Exec(ctx, "CREATE TABLE IF NOT EXISTS link (id bigserial, short_link text, full_link text, user_id int)")
+	_, err = p.Exec(ctx, "CREATE TABLE IF NOT EXISTS link (id bigserial, short_link text, full_link text, user_id int, is_deleted bool default false)")
 	if err != nil {
 		return nil, err
 	}
@@ -89,18 +89,34 @@ func (d *Database) PutBatch(ctx context.Context, records ...URLRecord) error {
 	return br.Close()
 }
 
+func (d *Database) DeleteBatch(ctx context.Context, records ...ToDelete) error {
+	batch := &pgx.Batch{}
+
+	for _, rec := range records {
+		batch.Queue("UPDATE link set is_deleted = true WHERE short_link = $1 AND user_id = $2", rec.ShortURL, rec.UserID)
+	}
+	br := d.pool.SendBatch(ctx, batch)
+	return br.Close()
+}
+
 func (d *Database) Get(ctx context.Context, key string) (string, error) {
-	row := d.pool.QueryRow(ctx, "SELECT full_link FROM link WHERE short_link = $1", key)
+	row := d.pool.QueryRow(ctx, "SELECT full_link, is_deleted FROM link WHERE short_link = $1", key)
 
 	var URL string
-	err := row.Scan(&URL)
+	var is_deleted bool
 
+	err := row.Scan(&URL, &is_deleted)
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
 		return "", fmt.Errorf("%w", &KeyNotFoundError{Key: key})
 	}
 	if err != nil {
 		return "", err
 	}
+
+	if is_deleted {
+		return "", fmt.Errorf("%w", &RecordIsDeleted{Key: key})
+	}
+
 	return URL, nil
 }
 
