@@ -103,9 +103,9 @@ func (d *Database) Get(ctx context.Context, key string) (string, error) {
 	row := d.pool.QueryRow(ctx, "SELECT full_link, is_deleted FROM link WHERE short_link = $1", key)
 
 	var URL string
-	var is_deleted bool
+	var isDeleted bool
 
-	err := row.Scan(&URL, &is_deleted)
+	err := row.Scan(&URL, &isDeleted)
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
 		return "", fmt.Errorf("%w", &KeyNotFoundError{Key: key})
 	}
@@ -113,7 +113,7 @@ func (d *Database) Get(ctx context.Context, key string) (string, error) {
 		return "", err
 	}
 
-	if is_deleted {
+	if isDeleted {
 		return "", fmt.Errorf("%w", &RecordIsDeleted{Key: key})
 	}
 
