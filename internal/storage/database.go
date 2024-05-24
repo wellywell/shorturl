@@ -132,7 +132,7 @@ func (d *Database) CreateNewUser(ctx context.Context) (int, error) {
 }
 
 func (d *Database) GetUserURLS(ctx context.Context, userID int) ([]URLRecord, error) {
-	rows, err := d.pool.Query(ctx, "SELECT short_link, full_link, user_id FROM link WHERE user_id = $1", userID)
+	rows, err := d.pool.Query(ctx, "SELECT short_link, full_link, user_id, is_deleted FROM link WHERE user_id = $1", userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed collecting rows %w", err)
 	}
