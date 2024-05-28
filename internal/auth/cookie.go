@@ -11,11 +11,11 @@ func VerifyUser(r *http.Request) (int, error) {
 	if err == nil {
 		userID, err := GetUserID(cookie.Value)
 		if err != nil {
-			return -1, err
+			return 0, err
 		}
 		return userID, nil
 	}
-	return -1, err
+	return 0, err
 }
 
 func SetAuthCookie(userID int, w http.ResponseWriter) error {

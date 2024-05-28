@@ -71,8 +71,7 @@ func (m *Memory) CreateNewUser(ctx context.Context) (int, error) {
 }
 
 func (m *Memory) PutBatch(ctx context.Context, records ...URLRecord) error {
-	m.lock.RLock()
-	defer m.lock.RUnlock()
+
 	for _, rec := range records {
 		if err := m.Put(ctx, rec.ShortURL, rec.FullURL, rec.UserID); err != nil {
 			return err
@@ -104,7 +103,7 @@ func (m *Memory) GetUserURLS(ctx context.Context, userID int) ([]URLRecord, erro
 }
 
 func (m *Memory) GetAllRecords() []URLRecord {
-	var urls []URLRecord
+	urls :=  make([]URLRecord, len(m.urls))
 
 	m.lock.RLock()
 	defer m.lock.RUnlock()

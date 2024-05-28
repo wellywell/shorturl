@@ -39,11 +39,11 @@ func GetUserID(tokenString string) (int, error) {
 			return []byte(secret), nil
 		})
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 
 	if !token.Valid {
-		return -1, fmt.Errorf("token invalid")
+		return 0, fmt.Errorf("token invalid")
 	}
 
 	return claims.UserID, nil

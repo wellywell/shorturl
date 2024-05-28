@@ -402,11 +402,11 @@ func (uh *URLsHandler) getOrCreateUser(w http.ResponseWriter, req *http.Request)
 	// user not verified, create new one
 	userID, err = uh.urls.CreateNewUser(req.Context())
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 	err = auth.SetAuthCookie(userID, w)
 	if err != nil {
-		return -1, err
+		return 0, err
 	}
 	return userID, nil
 }
