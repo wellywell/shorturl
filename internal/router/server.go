@@ -14,6 +14,8 @@ type URLsHandlers interface {
 	HandleShortenURLJSON(w http.ResponseWriter, req *http.Request)
 	HandlePing(w http.ResponseWriter, req *http.Request)
 	HandleShortenBatch(w http.ResponseWriter, req *http.Request)
+	HandleUserURLS(w http.ResponseWriter, req *http.Request)
+	HandleDeleteUserURLS(w http.ResponseWriter, req *http.Request)
 }
 
 type Middleware interface {
@@ -38,6 +40,8 @@ func NewRouter(config config.ServerConfig, handlers URLsHandlers, middlewares ..
 	r.Post("/api/shorten", handlers.HandleShortenURLJSON)
 	r.Get("/ping", handlers.HandlePing)
 	r.Post("/api/shorten/batch", handlers.HandleShortenBatch)
+	r.Get("/api/user/urls", handlers.HandleUserURLS)
+	r.Delete("/api/user/urls", handlers.HandleDeleteUserURLS)
 
 	return &Router{router: r, config: config}
 }

@@ -23,7 +23,7 @@ func NewDatabase(connString string) (*Database, error) {
 		return nil, err
 	}
 
-	_, err = p.Exec(ctx, "CREATE TABLE IF NOT EXISTS link (id bigserial, short_link text, full_link text)")
+	_, err = p.Exec(ctx, "CREATE TABLE IF NOT EXISTS link (id bigserial, short_link text, full_link text, user_id int, is_deleted bool default false)")
 	if err != nil {
 		return nil, err
 	}
@@ -35,18 +35,26 @@ func NewDatabase(connString string) (*Database, error) {
 	if err != nil {
 		return nil, err
 	}
+	_, err = p.Exec(ctx, "CREATE INDEX IF NOT EXISTS full_link_indx ON link(user_id)")
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.Exec(ctx, "CREATE TABLE IF NOT EXISTS auth_user (id bigserial)")
+	if err != nil {
+		return nil, err
+	}
 	return &Database{
 		pool: p,
 	}, nil
 
 }
 
-func (d *Database) Put(ctx context.Context, key string, val string) error {
+func (d *Database) Put(ctx context.Context, key string, val string, user int) error {
 
 	query := `
 		WITH inserted AS
-			(INSERT INTO link (short_link, full_link)
-			 VALUES ($1, $2)
+			(INSERT INTO link (short_link, full_link, user_id)
+			 VALUES ($1, $2, $3)
 			 ON CONFLICT(full_link) DO NOTHING
 			 RETURNING short_link)
 		SELECT COALESCE (
@@ -54,7 +62,7 @@ func (d *Database) Put(ctx context.Context, key string, val string) error {
 			(SELECT short_link FROM link WHERE full_link = $2)
 		)`
 
-	row := d.pool.QueryRow(ctx, query, key, val)
+	row := d.pool.QueryRow(ctx, query, key, val, user)
 
 	var shortURL string
 	if err := row.Scan(&shortURL); err != nil {
@@ -71,29 +79,69 @@ func (d *Database) Put(ctx context.Context, key string, val string) error {
 	return nil
 }
 
-func (d *Database) PutBatch(ctx context.Context, records ...KeyValue) error {
+func (d *Database) PutBatch(ctx context.Context, records ...URLRecord) error {
 	batch := &pgx.Batch{}
 
 	for _, rec := range records {
-		batch.Queue("INSERT INTO link (short_link, full_link) VALUES ($1, $2)", rec.Key, rec.Value)
+		batch.Queue("INSERT INTO link (short_link, full_link, user_id) VALUES ($1, $2, $3)", rec.ShortURL, rec.FullURL, rec.UserID)
+	}
+	br := d.pool.SendBatch(ctx, batch)
+	return br.Close()
+}
+
+func (d *Database) DeleteBatch(ctx context.Context, records ...ToDelete) error {
+	batch := &pgx.Batch{}
+
+	for _, rec := range records {
+		batch.Queue("UPDATE link set is_deleted = true WHERE short_link = $1 AND user_id = $2", rec.ShortURL, rec.UserID)
 	}
 	br := d.pool.SendBatch(ctx, batch)
 	return br.Close()
 }
 
 func (d *Database) Get(ctx context.Context, key string) (string, error) {
-	row := d.pool.QueryRow(ctx, "SELECT full_link FROM link WHERE short_link = $1", key)
+	row := d.pool.QueryRow(ctx, "SELECT full_link, is_deleted FROM link WHERE short_link = $1", key)
 
 	var URL string
-	err := row.Scan(&URL)
+	var isDeleted bool
 
+	err := row.Scan(&URL, &isDeleted)
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
 		return "", fmt.Errorf("%w", &KeyNotFoundError{Key: key})
 	}
 	if err != nil {
 		return "", err
 	}
+
+	if isDeleted {
+		return "", fmt.Errorf("%w", &RecordIsDeleted{Key: key})
+	}
+
 	return URL, nil
+}
+
+func (d *Database) CreateNewUser(ctx context.Context) (int, error) {
+	row := d.pool.QueryRow(ctx, "INSERT INTO auth_user DEFAULT VALUES RETURNING id")
+
+	var userID int
+	err := row.Scan(&userID)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
+}
+
+func (d *Database) GetUserURLS(ctx context.Context, userID int) ([]URLRecord, error) {
+	rows, err := d.pool.Query(ctx, "SELECT short_link, full_link, user_id, is_deleted FROM link WHERE user_id = $1", userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed collecting rows %w", err)
+	}
+
+	numbers, err := pgx.CollectRows(rows, pgx.RowToStructByName[URLRecord])
+	if err != nil {
+		return nil, fmt.Errorf("failed unpacking rows %w", err)
+	}
+	return numbers, nil
 }
 
 func (d *Database) Close() error {

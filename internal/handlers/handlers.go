@@ -9,26 +9,31 @@ import (
 
 	"github.com/jackc/pgx/v5"
 
+	"github.com/wellywell/shorturl/internal/auth"
 	"github.com/wellywell/shorturl/internal/config"
 	"github.com/wellywell/shorturl/internal/storage"
 	"github.com/wellywell/shorturl/internal/url"
 )
 
 type Storage interface {
-	Put(ctx context.Context, key string, val string) error
+	Put(ctx context.Context, key string, val string, user int) error
 	Get(ctx context.Context, key string) (string, error)
-	PutBatch(ctx context.Context, records ...storage.KeyValue) error
+	PutBatch(ctx context.Context, records ...storage.URLRecord) error
+	CreateNewUser(ctx context.Context) (int, error)
+	GetUserURLS(ctx context.Context, userID int) ([]storage.URLRecord, error)
 }
 
 type URLsHandler struct {
-	urls   Storage
-	config config.ServerConfig
+	urls        Storage
+	config      config.ServerConfig
+	deleteQueue chan storage.ToDelete
 }
 
-func NewURLsHandler(storage Storage, config config.ServerConfig) *URLsHandler {
+func NewURLsHandler(storage Storage, queue chan storage.ToDelete, config config.ServerConfig) *URLsHandler {
 	return &URLsHandler{
-		urls:   storage,
-		config: config,
+		urls:        storage,
+		deleteQueue: queue,
+		config:      config,
 	}
 }
 
@@ -63,7 +68,13 @@ func (uh *URLsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	shortURL, isCreated, err := uh.getShortURL(req.Context(), longURL)
+	userID, err := uh.getOrCreateUser(w, req)
+	if err != nil {
+		http.Error(w, "Error authenticating user", http.StatusBadRequest)
+		return
+	}
+
+	shortURL, isCreated, err := uh.getShortURL(req.Context(), longURL, userID)
 	if err != nil {
 		http.Error(w, "Could not store url",
 			http.StatusInternalServerError)
@@ -133,8 +144,13 @@ func (uh *URLsHandler) HandleShortenBatch(w http.ResponseWriter, req *http.Reque
 	w.Header().Set("content-type", "application/json")
 
 	if len(requestData) > 0 {
+		userID, err := uh.getOrCreateUser(w, req)
+		if err != nil {
+			http.Error(w, "Error authenticating user", http.StatusBadRequest)
+			return
+		}
 
-		records := make([]storage.KeyValue, len(requestData))
+		records := make([]storage.URLRecord, len(requestData))
 
 		for i, data := range requestData {
 			shortURLID := url.MakeShortURLID(data.OriginalURL)
@@ -143,12 +159,13 @@ func (uh *URLsHandler) HandleShortenBatch(w http.ResponseWriter, req *http.Reque
 				CorrelationID: data.CorrelationID,
 				ShortURL:      url.FormatShortURL(uh.config.ShortURLsAddress, shortURLID),
 			}
-			records[i] = storage.KeyValue{
-				Key:   shortURLID,
-				Value: data.OriginalURL,
+			records[i] = storage.URLRecord{
+				ShortURL: shortURLID,
+				FullURL:  data.OriginalURL,
+				UserID:   userID,
 			}
 		}
-		err := uh.urls.PutBatch(req.Context(), records...)
+		err = uh.urls.PutBatch(req.Context(), records...)
 		if err != nil {
 			// В случае возникновения коллизий тут, завершаемся с ошибкой
 			http.Error(w, "Could not store values",
@@ -194,7 +211,13 @@ func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	shortURL, isCreated, err := uh.getShortURL(req.Context(), longURL)
+	userID, err := uh.getOrCreateUser(w, req)
+	if err != nil {
+		http.Error(w, "Error authenticating user", http.StatusBadRequest)
+		return
+	}
+
+	shortURL, isCreated, err := uh.getShortURL(req.Context(), longURL, userID)
 	if err != nil {
 		http.Error(w, "Could not store url",
 			http.StatusInternalServerError)
@@ -215,12 +238,12 @@ func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 	}
 }
 
-func (uh *URLsHandler) getShortURL(ctx context.Context, longURL string) (URL string, isCreated bool, err error) {
+func (uh *URLsHandler) getShortURL(ctx context.Context, longURL string, user int) (URL string, isCreated bool, err error) {
 	shortURLID := url.MakeShortURLID(longURL)
 
 	// Handle collisions
 	for {
-		err := uh.urls.Put(ctx, shortURLID, longURL)
+		err := uh.urls.Put(ctx, shortURLID, longURL, user)
 		if err == nil {
 			break
 		}
@@ -255,13 +278,17 @@ func (uh *URLsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request
 	}
 	url, err := uh.urls.Get(req.Context(), idString)
 
-	var keyNotFound *storage.KeyNotFoundError
-	if err != nil && errors.As(err, &keyNotFound) {
-		http.Error(w, "Not found", http.StatusNotFound)
-		return
-
-	}
 	if err != nil {
+		var keyNotFound *storage.KeyNotFoundError
+		if errors.As(err, &keyNotFound) {
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
+		var keyDeleted *storage.RecordIsDeleted
+		if errors.As(err, &keyDeleted) {
+			http.Error(w, "Gone", http.StatusGone)
+			return
+		}
 		http.Error(w, "Something went wrong",
 			http.StatusInternalServerError)
 		return
@@ -280,4 +307,106 @@ func (uh *URLsHandler) HandlePing(w http.ResponseWriter, req *http.Request) {
 	}
 	defer conn.Close(req.Context())
 	w.WriteHeader(http.StatusOK)
+}
+
+func (uh *URLsHandler) HandleDeleteUserURLS(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodDelete {
+		http.Error(w, "Wrong method",
+			http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, err := auth.VerifyUser(req)
+	if err != nil {
+		http.Error(w, "Authorize error", http.StatusUnauthorized)
+		return
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		http.Error(w, "Something went wrong",
+			http.StatusInternalServerError)
+		return
+	}
+
+	var requestData []string
+	err = json.Unmarshal(body, &requestData)
+	if err != nil {
+		http.Error(w, "Could not parse body",
+			http.StatusBadRequest)
+		return
+	}
+	for _, rec := range requestData {
+		uh.deleteQueue <- storage.ToDelete{UserID: userID, ShortURL: rec}
+	}
+	w.WriteHeader(http.StatusAccepted)
+}
+
+func (uh *URLsHandler) HandleUserURLS(w http.ResponseWriter, req *http.Request) {
+	if req.Method != http.MethodGet {
+		http.Error(w, "Wrong method",
+			http.StatusMethodNotAllowed)
+		return
+	}
+
+	userID, err := auth.VerifyUser(req)
+	if err != nil {
+		http.Error(w, "Authorize error", http.StatusUnauthorized)
+		return
+	}
+	urls, err := uh.urls.GetUserURLS(req.Context(), userID)
+
+	if err != nil {
+		http.Error(w, "Error getting data", http.StatusInternalServerError)
+		return
+	}
+
+	if len(urls) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	type outData struct {
+		ShortURL    string `json:"short_url"`
+		OriginalURL string `json:"original_url"`
+	}
+	respData := make([]outData, len(urls))
+
+	for i, data := range urls {
+
+		respData[i] = outData{
+			ShortURL:    url.FormatShortURL(uh.config.ShortURLsAddress, data.ShortURL),
+			OriginalURL: data.FullURL,
+		}
+	}
+	response, err := json.Marshal(respData)
+	if err != nil {
+		http.Error(w, "Could not serialize result",
+			http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("content-type", "application/json")
+	_, err = w.Write(response)
+	if err != nil {
+		http.Error(w, "Something went wrong",
+			http.StatusInternalServerError)
+	}
+}
+
+func (uh *URLsHandler) getOrCreateUser(w http.ResponseWriter, req *http.Request) (int, error) {
+
+	userID, err := auth.VerifyUser(req)
+	if err == nil {
+		return userID, nil
+	}
+
+	// user not verified, create new one
+	userID, err = uh.urls.CreateNewUser(req.Context())
+	if err != nil {
+		return 0, err
+	}
+	err = auth.SetAuthCookie(userID, w)
+	if err != nil {
+		return 0, err
+	}
+	return userID, nil
 }
