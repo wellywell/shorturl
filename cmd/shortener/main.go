@@ -3,6 +3,9 @@ package main
 import (
 	"context"
 
+	"net/http"
+	_ "net/http/pprof"
+
 	"github.com/wellywell/shorturl/internal/compress"
 	"github.com/wellywell/shorturl/internal/config"
 	"github.com/wellywell/shorturl/internal/handlers"
@@ -56,8 +59,12 @@ func main() {
 
 	go tasks.DeleteWorker(deleteQueue, store)
 
+	// pprof c chi роутером ведёт себя странно, запустим отдельно
+	go http.ListenAndServe(":8081", nil)
+
 	err = r.ListenAndServe()
 	if err != nil {
 		panic(err)
 	}
+
 }
