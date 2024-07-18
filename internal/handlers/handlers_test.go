@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -17,7 +15,6 @@ import (
 
 	"github.com/wellywell/shorturl/internal/config"
 	"github.com/wellywell/shorturl/internal/storage"
-	"github.com/wellywell/shorturl/internal/testutils"
 )
 
 var mockConfig = config.ServerConfig{BaseAddress: "localhost:8080", ShortURLsAddress: "http://localhost:8080"}
@@ -27,7 +24,7 @@ var DBDSN string
 var seededRand *rand.Rand = rand.New(
 	rand.NewSource(time.Now().UnixNano()))
 
-func TestMain(m *testing.M) {
+/*func TestMain(m *testing.M) {
 	code, err := runMain(m)
 
 	if err != nil {
@@ -50,7 +47,7 @@ func runMain(m *testing.M) (int, error) {
 
 	return exitCode, nil
 
-}
+}*/
 
 func randomString() string {
 	const charset = "abcdefghijklmnopqrstuvwxyz" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -96,6 +93,10 @@ func TestHandleCreateShortURL(t *testing.T) {
 	}
 }
 
+
+// skip database no docker on github
+
+/*
 func BenchmarkHandleCreateShortURLDB(b *testing.B) {
 
 	storage, _ := storage.NewDatabase(DBDSN)
@@ -109,7 +110,7 @@ func BenchmarkHandleCreateShortURLDB(b *testing.B) {
 		b.StartTimer()
 		handler.HandleCreateShortURL(w, r)
 	}
-}
+}*/
 
 func BenchmarkHandleCreateShortURLMemory(b *testing.B) {
 
@@ -183,6 +184,7 @@ func TestHandleShortenURLJSON(t *testing.T) {
 	}
 }
 
+/*
 func BenchmarkHandleShortenURLJSONDB(b *testing.B) {
 
 	storage, _ := storage.NewDatabase(DBDSN)
@@ -197,7 +199,7 @@ func BenchmarkHandleShortenURLJSONDB(b *testing.B) {
 		b.StartTimer()
 		handler.HandleShortenURLJSON(w, r)
 	}
-}
+}*/
 
 func BenchmarkHandleShortenURLJSONMemory(b *testing.B) {
 
@@ -275,6 +277,7 @@ func TestHandleGetFullURL(t *testing.T) {
 	}
 }
 
+/*
 func BenchmarkHandleGetFullURLDB(b *testing.B) {
 
 	storage, _ := storage.NewDatabase(DBDSN)
@@ -296,7 +299,7 @@ func BenchmarkHandleGetFullURLDB(b *testing.B) {
 		b.StartTimer()
 		handler.HandleGetFullURL(w, r)
 	}
-}
+}*/
 
 func BenchmarkHandleGetFullURLMemory(b *testing.B) {
 
@@ -345,7 +348,7 @@ func BenchmarkHandleGetFullURLFile(b *testing.B) {
 	}
 }
 
-func BenchmarkHandleShortenBatchDB(b *testing.B) {
+/*func BenchmarkHandleShortenBatchDB(b *testing.B) {
 
 	storage, _ := storage.NewDatabase(DBDSN)
 	handler := &URLsHandler{urls: storage, config: mockConfig}
@@ -365,7 +368,7 @@ func BenchmarkHandleShortenBatchDB(b *testing.B) {
 		b.StartTimer()
 		handler.HandleShortenBatch(w, r)
 	}
-}
+}*/
 
 func BenchmarkHandleShortenBatchMemory(b *testing.B) {
 
@@ -412,7 +415,7 @@ func BenchmarkHandleShortenBatchFile(b *testing.B) {
 	}
 }
 
-func BenchmarkHandleUserURLSDB(b *testing.B) {
+/*func BenchmarkHandleUserURLSDB(b *testing.B) {
 
 	storage, _ := storage.NewDatabase(DBDSN)
 	handler := &URLsHandler{urls: storage, config: mockConfig}
@@ -433,7 +436,7 @@ func BenchmarkHandleUserURLSDB(b *testing.B) {
 		b.StartTimer()
 		handler.HandleUserURLS(w, r)
 	}
-}
+}*/
 
 func BenchmarkHandleUserURLSMemory(b *testing.B) {
 
@@ -482,7 +485,7 @@ func BenchmarkHandleUserURLSFile(b *testing.B) {
 	}
 }
 
-func BenchmarkHandleDeleteUserURLSDB(b *testing.B) {
+/*func BenchmarkHandleDeleteUserURLSDB(b *testing.B) {
 
 	storage, _ := storage.NewDatabase(DBDSN)
 	handler := &URLsHandler{urls: storage, config: mockConfig}
@@ -503,7 +506,7 @@ func BenchmarkHandleDeleteUserURLSDB(b *testing.B) {
 		b.StartTimer()
 		handler.HandleDeleteUserURLS(w, r)
 	}
-}
+}*/
 
 func BenchmarkHandleDeleteUserURLSMemory(b *testing.B) {
 
