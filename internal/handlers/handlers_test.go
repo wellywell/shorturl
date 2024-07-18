@@ -24,6 +24,9 @@ var mockConfig = config.ServerConfig{BaseAddress: "localhost:8080", ShortURLsAdd
 
 var DBDSN string
 
+var seededRand *rand.Rand = rand.New(
+	rand.NewSource(time.Now().UnixNano()))
+
 func TestMain(m *testing.M) {
 	code, err := runMain(m)
 
@@ -51,9 +54,6 @@ func runMain(m *testing.M) (int, error) {
 
 func randomString() string {
 	const charset = "abcdefghijklmnopqrstuvwxyz" + "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-
-	var seededRand *rand.Rand = rand.New(
-		rand.NewSource(time.Now().UnixNano()))
 
 	b := make([]byte, 20)
 	for i := range b {

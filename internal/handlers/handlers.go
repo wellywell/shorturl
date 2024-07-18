@@ -43,18 +43,12 @@ func (uh *URLsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 			http.StatusMethodNotAllowed)
 		return
 	}
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		http.Error(w, "Something went wrong",
-			http.StatusInternalServerError)
-		return
-	}
 
 	var data struct {
 		URL string `json:"url"`
 	}
 
-	err = json.Unmarshal(body, &data)
+	err := json.NewDecoder(req.Body).Decode(&data)
 	if err != nil {
 		http.Error(w, "Could not parse body",
 			http.StatusBadRequest)
@@ -115,12 +109,6 @@ func (uh *URLsHandler) HandleShortenBatch(w http.ResponseWriter, req *http.Reque
 			http.StatusMethodNotAllowed)
 		return
 	}
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		http.Error(w, "Something went wrong",
-			http.StatusInternalServerError)
-		return
-	}
 
 	type inData struct {
 		CorrelationID string `json:"correlation_id"`
@@ -128,7 +116,7 @@ func (uh *URLsHandler) HandleShortenBatch(w http.ResponseWriter, req *http.Reque
 	}
 	var requestData []inData
 
-	err = json.Unmarshal(body, &requestData)
+	err := json.NewDecoder(req.Body).Decode(&requestData)
 	if err != nil {
 		http.Error(w, "Could not parse body",
 			http.StatusBadRequest)
@@ -322,20 +310,15 @@ func (uh *URLsHandler) HandleDeleteUserURLS(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		http.Error(w, "Something went wrong",
-			http.StatusInternalServerError)
-		return
-	}
-
 	var requestData []string
-	err = json.Unmarshal(body, &requestData)
+
+	err = json.NewDecoder(req.Body).Decode(&requestData)
 	if err != nil {
 		http.Error(w, "Could not parse body",
 			http.StatusBadRequest)
 		return
 	}
+
 	for _, rec := range requestData {
 		uh.deleteQueue <- storage.ToDelete{UserID: userID, ShortURL: rec}
 	}

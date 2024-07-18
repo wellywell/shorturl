@@ -103,7 +103,7 @@ func (m *Memory) GetUserURLS(ctx context.Context, userID int) ([]URLRecord, erro
 }
 
 func (m *Memory) GetAllRecords() []URLRecord {
-	urls :=  make([]URLRecord, len(m.urls))
+	urls := make([]URLRecord, len(m.urls))
 
 	m.lock.RLock()
 	defer m.lock.RUnlock()
