@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Storage - интерфейс хранилища, требуемый здесь
 type Storage interface {
 	DeleteBatch(ctx context.Context, records ...storage.ToDelete) error
 }

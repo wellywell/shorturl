@@ -125,6 +125,7 @@ func (m *Memory) GetAllRecords() []URLRecord {
 	return urls
 }
 
+// Close метод нужен для соответствия интерфейсу Storage
 func (m *Memory) Close() error {
 	return nil
 }

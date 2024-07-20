@@ -10,6 +10,7 @@ import (
 	"github.com/wellywell/shorturl/internal/config"
 )
 
+// URLsHandlers интерфейс для работы с хендлерами
 type URLsHandlers interface {
 	HandleCreateShortURL(w http.ResponseWriter, req *http.Request)
 	HandleGetFullURL(w http.ResponseWriter, req *http.Request)
@@ -20,6 +21,7 @@ type URLsHandlers interface {
 	HandleDeleteUserURLS(w http.ResponseWriter, req *http.Request)
 }
 
+// Middleware - интерфейс, которому должны соответствовать используемые Middleware
 type Middleware interface {
 	Handle(h http.Handler) http.Handler
 }

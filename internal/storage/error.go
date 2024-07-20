@@ -14,6 +14,7 @@ type KeyExistsError struct {
 	Key string
 }
 
+// Error стандартный метод интерфейса error
 func (e *KeyExistsError) Error() string {
 	return fmt.Sprintf("Key %s already exists with different value", e.Key)
 }
@@ -23,6 +24,7 @@ type KeyNotFoundError struct {
 	Key string
 }
 
+// Error стандартный метод интерфейса error
 func (e *KeyNotFoundError) Error() string {
 	return fmt.Sprintf("Key %s not found", e.Key)
 }
@@ -33,6 +35,7 @@ type ValueExistsError struct {
 	ExistingKey string
 }
 
+// Error стандартный метод интерфейса error
 func (e *ValueExistsError) Error() string {
 	return fmt.Sprintf("Value %s already exists", e.Value)
 }
@@ -42,6 +45,7 @@ type RecordIsDeleted struct {
 	Key string
 }
 
+// Error стандартный метод интерфейса error
 func (e *RecordIsDeleted) Error() string {
 	return fmt.Sprintf("Record is deleted %s", e.Key)
 }

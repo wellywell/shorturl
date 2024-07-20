@@ -293,6 +293,7 @@ func (uh *URLsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+// HandlePing проверка что сервер запущен и работает
 func (uh *URLsHandler) HandlePing(w http.ResponseWriter, req *http.Request) {
 
 	conn, err := pgx.Connect(req.Context(), uh.config.DatabaseDSN)
