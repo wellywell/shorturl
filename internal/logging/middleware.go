@@ -1,3 +1,4 @@
+// Пакет реализует middleware, логгирующую информацию о сервисе
 package logging
 
 import (
@@ -20,6 +21,7 @@ type (
 	}
 )
 
+// Write переопределяет метод записи ответа, добавляя к нему сохранение информации для логирования
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 
 	size, err := r.ResponseWriter.Write(b)
@@ -28,16 +30,19 @@ func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	return size, err
 }
 
+// WriteHeader переопределяет метод WriteHeader для сохранения информации о статусе ответа для дальнейшего логгирования
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode
 }
 
+// Logger структура для логгирования
 type Logger struct {
 	sugar *zap.SugaredLogger
 }
 
+// NewLogger инициализирует логгер
 func NewLogger() (*Logger, error) {
 	logger, err := zap.NewDevelopment()
 	if err != nil {
@@ -51,6 +56,7 @@ func NewLogger() (*Logger, error) {
 	}, nil
 }
 
+// Handle метод для использования Logger как middleware
 func (l Logger) Handle(h http.Handler) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

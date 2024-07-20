@@ -6,18 +6,21 @@ import (
 	"sync"
 )
 
+// FullURLData структура для хранения записи в памяти
 type FullURLData struct {
 	UserID    int
 	FullURL   string
 	IsDeleted bool
 }
 
+// Memory - imMemory хранилище для ссылок
 type Memory struct {
 	urls      map[string]FullURLData
 	maxUserID int
 	lock      sync.RWMutex
 }
 
+// NewMemory инициализация хранилища
 func NewMemory() *Memory {
 	return &Memory{
 		urls:      make(map[string]FullURLData),
@@ -25,6 +28,7 @@ func NewMemory() *Memory {
 	}
 }
 
+// Get получение записи из хранилища
 func (m *Memory) Get(ctx context.Context, key string) (string, error) {
 	m.lock.RLock()
 	defer m.lock.RUnlock()
@@ -38,6 +42,7 @@ func (m *Memory) Get(ctx context.Context, key string) (string, error) {
 	return v.FullURL, nil
 }
 
+// Put - сохранение записи о ссылке по ключу
 func (m *Memory) Put(ctx context.Context, key string, val string, user int) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -52,6 +57,7 @@ func (m *Memory) Put(ctx context.Context, key string, val string, user int) erro
 	return nil
 }
 
+// Delete - удаление записи по ключу
 func (m *Memory) Delete(key string, user int) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -63,6 +69,7 @@ func (m *Memory) Delete(key string, user int) {
 	m.urls[key] = FullURLData{FullURL: v.FullURL, UserID: v.UserID, IsDeleted: true}
 }
 
+// CreateNewUser создание нового пользователя
 func (m *Memory) CreateNewUser(ctx context.Context) (int, error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
@@ -70,6 +77,7 @@ func (m *Memory) CreateNewUser(ctx context.Context) (int, error) {
 	return m.maxUserID, nil
 }
 
+// PutBatch - сохранение нескольких записей в хранилище
 func (m *Memory) PutBatch(ctx context.Context, records ...URLRecord) error {
 
 	for _, rec := range records {
@@ -80,6 +88,7 @@ func (m *Memory) PutBatch(ctx context.Context, records ...URLRecord) error {
 	return nil
 }
 
+// DeleteBatch - удаление нескольких записей из хранилища
 func (m *Memory) DeleteBatch(ctx context.Context, records ...ToDelete) error {
 	for _, rec := range records {
 		m.Delete(rec.ShortURL, rec.UserID)
@@ -87,6 +96,7 @@ func (m *Memory) DeleteBatch(ctx context.Context, records ...ToDelete) error {
 	return nil
 }
 
+// GetUserURLS получение списка ссылок, принадлежащих пользователю
 func (m *Memory) GetUserURLS(ctx context.Context, userID int) ([]URLRecord, error) {
 	var urls []URLRecord
 
@@ -102,6 +112,7 @@ func (m *Memory) GetUserURLS(ctx context.Context, userID int) ([]URLRecord, erro
 	return urls, nil
 }
 
+// GetAllRecords получение списка всех записей
 func (m *Memory) GetAllRecords() []URLRecord {
 	urls := make([]URLRecord, len(m.urls))
 

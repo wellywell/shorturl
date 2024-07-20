@@ -1,3 +1,4 @@
+// Пакет для интеграционного тестирования, запускает тестовую БД в докере
 package testutils
 
 import (
@@ -93,6 +94,7 @@ func getHostPort(hostPort string) (string, uint16, error) {
 	return parts[0], uint16(port), nil
 }
 
+// RunTestDatabase - запуск тестовой БД
 func RunTestDatabase() (DSN string, cleanUp func(), err error) {
 
 	var cleanUpfuncs []func()

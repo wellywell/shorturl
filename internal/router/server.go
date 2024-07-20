@@ -1,3 +1,5 @@
+// Пакет отвечает за инициализацию объекта роутер, матчинг набора маршрутов с нужными хендлерами-обработчикамиб
+// а также подключает требуемые middleware
 package router
 
 import (
@@ -22,11 +24,13 @@ type Middleware interface {
 	Handle(h http.Handler) http.Handler
 }
 
+// Router - объект роутера
 type Router struct {
 	config config.ServerConfig
 	router *chi.Mux
 }
 
+// NewRouter инициализирует Router, прописывает пути, на которых сервер будет слушать
 func NewRouter(config config.ServerConfig, handlers URLsHandlers, middlewares ...Middleware) *Router {
 
 	r := chi.NewRouter()
@@ -46,6 +50,7 @@ func NewRouter(config config.ServerConfig, handlers URLsHandlers, middlewares ..
 	return &Router{router: r, config: config}
 }
 
+// ListenAndServe - метод для запуска сервера
 func (r *Router) ListenAndServe() error {
 	addr := r.config.BaseAddress
 	err := http.ListenAndServe(addr, r.router)

@@ -1,3 +1,4 @@
+// В пакете реализована отложенная таска для удаления ссылок
 package tasks
 
 import (
@@ -11,6 +12,7 @@ type Storage interface {
 	DeleteBatch(ctx context.Context, records ...storage.ToDelete) error
 }
 
+// DeleteWorker - функция, читающая задания на удаление ссылок и удаляющая их
 func DeleteWorker(tasks <-chan storage.ToDelete, store Storage) {
 
 	logger, err := zap.NewDevelopment()

@@ -1,3 +1,5 @@
+// Точка запуска приложения shorturl, хранящего и возвращающего короткие ссылки вместо длинных
+
 package main
 
 import (
@@ -15,18 +17,26 @@ import (
 	"github.com/wellywell/shorturl/internal/tasks"
 )
 
+// Storage - интерфейс хранилища для ссылок
+// В роли хранилища может выступать база данных, структура в памяти, и структура памяти с записью в файл
 type Storage interface {
+	// Put метод для записи длинной ссылки в хранилище по ключу
 	Put(ctx context.Context, key string, val string, user int) error
+	// Get достаёт запись по ключу
 	Get(ctx context.Context, key string) (string, error)
+	// PutBatch позволяет сохранять несколько записей за раз
 	PutBatch(ctx context.Context, records ...storage.URLRecord) error
+	// CreateNewUser создаёт нового пользователя и возвращает его id
 	CreateNewUser(ctx context.Context) (int, error)
+	// GetUserURLS возвращает список ссылок для данного пользователя
 	GetUserURLS(ctx context.Context, userID int) ([]storage.URLRecord, error)
+	// DeleteBatch удаляет набор переданных ему ссылок
 	DeleteBatch(ctx context.Context, records ...storage.ToDelete) error
+	// Close корректно завершает работу хранилища
 	Close() error
 }
 
 func main() {
-
 	log, err := logging.NewLogger()
 	if err != nil {
 		panic(err)

@@ -6,6 +6,7 @@ import (
 
 const userCookie = "_user"
 
+// VerifyUser проверяет куку из запроса, и достаёт из неё id user-a. Вернёт ошибку при неудаче
 func VerifyUser(r *http.Request) (int, error) {
 	cookie, err := r.Cookie(userCookie)
 	if err == nil {
@@ -18,6 +19,7 @@ func VerifyUser(r *http.Request) (int, error) {
 	return 0, err
 }
 
+// SetAuthCookie устанавливает авторизационную куку
 func SetAuthCookie(userID int, w http.ResponseWriter) error {
 
 	token, err := BuildJWTString(userID)
