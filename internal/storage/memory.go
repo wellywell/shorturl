@@ -8,9 +8,9 @@ import (
 
 // FullURLData структура для хранения записи в памяти
 type FullURLData struct {
-	UserID    int
 	FullURL   string
 	IsDeleted bool
+	UserID    int
 }
 
 // Memory - imMemory хранилище для ссылок

@@ -1,4 +1,4 @@
-// Пакет отвечает за инициализацию объекта роутер, матчинг набора маршрутов с нужными хендлерами-обработчикамиб
+// Package router отвечает за инициализацию объекта роутер, матчинг набора маршрутов с нужными хендлерами-обработчикамиб
 // а также подключает требуемые middleware
 package router
 
@@ -28,8 +28,8 @@ type Middleware interface {
 
 // Router - объект роутера
 type Router struct {
-	config config.ServerConfig
 	router *chi.Mux
+	config config.ServerConfig
 }
 
 // NewRouter инициализирует Router, прописывает пути, на которых сервер будет слушать

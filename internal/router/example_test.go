@@ -1,6 +1,8 @@
 package router
 
 import (
+	"fmt"
+
 	"github.com/wellywell/shorturl/internal/compress"
 	"github.com/wellywell/shorturl/internal/config"
 	"github.com/wellywell/shorturl/internal/handlers"
@@ -18,7 +20,12 @@ func Example() {
 
 	r := NewRouter(mockConfig, handler, logger, compress.RequestUngzipper{}, compress.ResponseGzipper{})
 
-	go r.ListenAndServe()
+	go func() {
+		err := r.ListenAndServe()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	// Output:
 

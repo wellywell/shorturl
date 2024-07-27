@@ -59,7 +59,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer store.Close()
+	defer func() {
+		err = store.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	deleteQueue := make(chan storage.ToDelete)
 
@@ -70,7 +75,12 @@ func main() {
 	go tasks.DeleteWorker(deleteQueue, store)
 
 	// pprof c chi роутером ведёт себя странно, запустим отдельно
-	go http.ListenAndServe(":8081", nil)
+	go func() {
+		err = http.ListenAndServe(":8081", nil)
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	err = r.ListenAndServe()
 	if err != nil {

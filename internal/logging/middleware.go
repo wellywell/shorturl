@@ -1,4 +1,4 @@
-// Пакет реализует middleware, логгирующую информацию о сервисе
+// Package logging реализует middleware, логгирующую информацию о сервисе
 package logging
 
 import (
@@ -10,9 +10,9 @@ import (
 
 type (
 	responseData struct {
+		data   []byte
 		status int
 		size   int
-		data   []byte
 	}
 
 	loggingResponseWriter struct {
@@ -48,7 +48,9 @@ func NewLogger() (*Logger, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer logger.Sync()
+	defer func() {
+		_ = logger.Sync()
+	}()
 
 	sugar := logger.Sugar()
 	return &Logger{

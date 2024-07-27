@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-// MemoryStorage: файловое хранилище дублирует записи в InMemory хранилище, поддерживающем данный интерфейс
+// MemoryStorage - файловое хранилище дублирует записи в InMemory хранилище, поддерживающем данный интерфейс
 type MemoryStorage interface {
 	Put(ctx context.Context, key string, val string, user int) error
 	Get(ctx context.Context, key string) (string, error)
