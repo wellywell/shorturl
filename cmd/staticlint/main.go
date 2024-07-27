@@ -1,3 +1,4 @@
+// Статические анализаторы кода и линтеры
 package main
 
 import (
@@ -45,6 +46,7 @@ import (
 	"honnef.co/go/tools/stylecheck"
 )
 
+// NoOsExitAnalizer - анализатор для проверки, что в пакете main в функции main() не используется вызов os.Exit()
 var NoOsExitAnalizer = &analysis.Analyzer{
 	Name: "noosexit",
 	Doc:  "check for os.Exit() in main() function of main package",
