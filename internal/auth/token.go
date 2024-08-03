@@ -1,3 +1,4 @@
+// Gfrtn
 package auth
 
 import (
@@ -6,6 +7,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
+// Claims нужен для кастомизации формата JWT token
 type Claims struct {
 	jwt.RegisteredClaims
 	UserID int
@@ -13,6 +15,7 @@ type Claims struct {
 
 const secret = "secret"
 
+// BuildJWTString формирует jwt-токен, включающий userID
 func BuildJWTString(userID int) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
@@ -29,6 +32,7 @@ func BuildJWTString(userID int) (string, error) {
 	return tokenString, nil
 }
 
+// GetUserID получает id пользователя из JWT-токена
 func GetUserID(tokenString string) (int, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims,

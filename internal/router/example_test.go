@@ -1,0 +1,25 @@
+package router
+
+import (
+	"github.com/wellywell/shorturl/internal/compress"
+	"github.com/wellywell/shorturl/internal/config"
+	"github.com/wellywell/shorturl/internal/handlers"
+	"github.com/wellywell/shorturl/internal/logging"
+	"github.com/wellywell/shorturl/internal/storage"
+)
+
+func Example() {
+
+	var mockConfig = config.ServerConfig{BaseAddress: "localhost:8080", ShortURLsAddress: "http://localhost:8080"}
+	st := storage.NewMemory()
+	handler := handlers.NewURLsHandler(st, make(chan storage.ToDelete), mockConfig)
+
+	logger, _ := logging.NewLogger()
+
+	r := NewRouter(mockConfig, handler, logger, compress.RequestUngzipper{}, compress.ResponseGzipper{})
+
+	go r.ListenAndServe()
+
+	// Output:
+
+}

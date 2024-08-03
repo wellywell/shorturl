@@ -9,6 +9,7 @@ import (
 	"sync"
 )
 
+// MemoryStorage: файловое хранилище дублирует записи в InMemory хранилище, поддерживающем данный интерфейс
 type MemoryStorage interface {
 	Put(ctx context.Context, key string, val string, user int) error
 	Get(ctx context.Context, key string) (string, error)
@@ -18,6 +19,7 @@ type MemoryStorage interface {
 	Delete(key string, user int)
 }
 
+// FileRecord структура, задающая формат хранения записи в файле
 type FileRecord struct {
 	UUID        string `json:"uuid"`
 	ShortURL    string `json:"short_url"`
@@ -26,6 +28,7 @@ type FileRecord struct {
 	IsDeleted   bool   `json:"is_deleted"`
 }
 
+// FileMemory структура, использующая как хранилище память + запись в файл
 type FileMemory struct {
 	file     *os.File
 	writer   *bufio.Writer
@@ -34,6 +37,7 @@ type FileMemory struct {
 	lock     sync.RWMutex
 }
 
+// NewFileMemory инициализирует FileMemory
 func NewFileMemory(path string, memory MemoryStorage) (*FileMemory, error) {
 	storage := FileMemory{
 		memory: memory,
@@ -52,6 +56,7 @@ func NewFileMemory(path string, memory MemoryStorage) (*FileMemory, error) {
 	return &storage, nil
 }
 
+// Put - сохранение записи о ссылке по ключу
 func (f *FileMemory) Put(ctx context.Context, key string, val string, user int) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
@@ -65,9 +70,8 @@ func (f *FileMemory) Put(ctx context.Context, key string, val string, user int) 
 	return nil
 }
 
+// PutBatch - сохранение нескольких записей в хранилище
 func (f *FileMemory) PutBatch(ctx context.Context, records ...URLRecord) error {
-	f.lock.Lock()
-	defer f.lock.Unlock()
 
 	for _, rec := range records {
 		if err := f.Put(ctx, rec.ShortURL, rec.FullURL, rec.UserID); err != nil {
@@ -77,6 +81,7 @@ func (f *FileMemory) PutBatch(ctx context.Context, records ...URLRecord) error {
 	return nil
 }
 
+// DeleteBatch - удаление нескольких записей из хранилища
 func (f *FileMemory) DeleteBatch(ctx context.Context, records ...ToDelete) error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
@@ -90,18 +95,21 @@ func (f *FileMemory) DeleteBatch(ctx context.Context, records ...ToDelete) error
 	return err
 }
 
+// Get получение записи из хранилища
 func (f *FileMemory) Get(ctx context.Context, key string) (string, error) {
 	f.lock.RLock()
 	defer f.lock.RUnlock()
 	return f.memory.Get(ctx, key)
 }
 
+// CreateNewUser создание нового пользователя
 func (f *FileMemory) CreateNewUser(ctx context.Context) (int, error) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 	return f.memory.CreateNewUser(ctx)
 }
 
+// GetUserURLS получение списка ссылок, принадлежащих пользователю
 func (f *FileMemory) GetUserURLS(ctx context.Context, userID int) ([]URLRecord, error) {
 	f.lock.RLock()
 	defer f.lock.RUnlock()
@@ -181,6 +189,7 @@ func (f *FileMemory) dumpToFile() error {
 	return nil
 }
 
+// Close завершение работы хранилища
 func (f *FileMemory) Close() error {
 	return f.file.Close()
 }

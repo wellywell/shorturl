@@ -1,3 +1,4 @@
+// Пакет config используется для конфигурирования сервиса
 package config
 
 import (
@@ -6,6 +7,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
+// ServerConfig - тип для сохранения настроек сервиса
 type ServerConfig struct {
 	BaseAddress      string `env:"SERVER_ADDRESS"`
 	ShortURLsAddress string `env:"BASE_URL"`
@@ -13,6 +15,7 @@ type ServerConfig struct {
 	DatabaseDSN      string `env:"DATABASE_DSN"`
 }
 
+// NewConfig инициализация объекта ServerConfig. Параметры берутся из env, либо аргументов командной строки
 func NewConfig() (*ServerConfig, error) {
 	var params ServerConfig
 	err := env.Parse(&params)

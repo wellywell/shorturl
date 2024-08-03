@@ -11,10 +11,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Database - структура для использования базы данных в качестве хранилища ссылок
 type Database struct {
 	pool *pgxpool.Pool
 }
 
+// NewDatabase инициализирует БД и проводит необходимые миграции
 func NewDatabase(connString string) (*Database, error) {
 
 	ctx := context.Background()
@@ -49,6 +51,7 @@ func NewDatabase(connString string) (*Database, error) {
 
 }
 
+// Put записывает полную ссылку по ключу key в БД
 func (d *Database) Put(ctx context.Context, key string, val string, user int) error {
 
 	query := `
@@ -79,6 +82,7 @@ func (d *Database) Put(ctx context.Context, key string, val string, user int) er
 	return nil
 }
 
+// PutBatch записывает в БД несколько записей о ссылках за раз
 func (d *Database) PutBatch(ctx context.Context, records ...URLRecord) error {
 	batch := &pgx.Batch{}
 
@@ -89,6 +93,7 @@ func (d *Database) PutBatch(ctx context.Context, records ...URLRecord) error {
 	return br.Close()
 }
 
+// DeleteBatch помечает как удаленные ссылки
 func (d *Database) DeleteBatch(ctx context.Context, records ...ToDelete) error {
 	batch := &pgx.Batch{}
 
@@ -99,6 +104,7 @@ func (d *Database) DeleteBatch(ctx context.Context, records ...ToDelete) error {
 	return br.Close()
 }
 
+// Get достаёт из БД ссылку по ключу
 func (d *Database) Get(ctx context.Context, key string) (string, error) {
 	row := d.pool.QueryRow(ctx, "SELECT full_link, is_deleted FROM link WHERE short_link = $1", key)
 
@@ -120,6 +126,7 @@ func (d *Database) Get(ctx context.Context, key string) (string, error) {
 	return URL, nil
 }
 
+// CreateNewUser создаёт нового пользователя и возвращает его id
 func (d *Database) CreateNewUser(ctx context.Context) (int, error) {
 	row := d.pool.QueryRow(ctx, "INSERT INTO auth_user DEFAULT VALUES RETURNING id")
 
@@ -131,6 +138,7 @@ func (d *Database) CreateNewUser(ctx context.Context) (int, error) {
 	return userID, nil
 }
 
+// GetUserURLS получает список ссылок, созданных данным польззователем
 func (d *Database) GetUserURLS(ctx context.Context, userID int) ([]URLRecord, error) {
 	rows, err := d.pool.Query(ctx, "SELECT short_link, full_link, user_id, is_deleted FROM link WHERE user_id = $1", userID)
 	if err != nil {
@@ -144,6 +152,7 @@ func (d *Database) GetUserURLS(ctx context.Context, userID int) ([]URLRecord, er
 	return numbers, nil
 }
 
+// Close завершает работу базы данных
 func (d *Database) Close() error {
 	d.pool.Close()
 	return nil

@@ -1,3 +1,4 @@
+// Пакет compress отвечает за методы для компрессии и декомпрессии request и response
 package compress
 
 import (
@@ -6,10 +7,12 @@ import (
 	"strings"
 )
 
+// ResponseGzipper используется для сжатия response
 type ResponseGzipper struct {
 	writer *gzip.Writer
 }
 
+// RequestUngzipper используется для декомпрессии request
 type RequestUngzipper struct {
 	reader *gzip.Reader
 }
@@ -25,6 +28,7 @@ func (w gzipWriter) shouldCompress() bool {
 
 }
 
+// WriteHeader проставляет необходимый заголовок, если контент подлежит компрессии
 func (w gzipWriter) WriteHeader(status int) {
 	if w.shouldCompress() {
 		w.Header().Set("Content-Encoding", "gzip")
@@ -33,6 +37,7 @@ func (w gzipWriter) WriteHeader(status int) {
 	w.ResponseWriter.WriteHeader(status)
 }
 
+// Write переопределение метода записи response, в сжатом виде
 func (w gzipWriter) Write(b []byte) (int, error) {
 
 	if !w.shouldCompress() {
@@ -54,6 +59,7 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.compressor.writer.Write(b)
 }
 
+// Handle метод для использования RequestUngzipper в качесте Middleware
 func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -78,6 +84,7 @@ func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 	})
 }
 
+// Handle метод для использования ResponseGzippe в качесте Middleware
 func (g ResponseGzipper) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

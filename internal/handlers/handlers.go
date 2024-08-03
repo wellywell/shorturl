@@ -1,3 +1,4 @@
+// Пакет handlers включает в себя реализацию хендлеров для работы сервиса
 package handlers
 
 import (
@@ -15,6 +16,7 @@ import (
 	"github.com/wellywell/shorturl/internal/url"
 )
 
+// Storage - интерфейс хранилища коротких ссылок
 type Storage interface {
 	Put(ctx context.Context, key string, val string, user int) error
 	Get(ctx context.Context, key string) (string, error)
@@ -23,12 +25,14 @@ type Storage interface {
 	GetUserURLS(ctx context.Context, userID int) ([]storage.URLRecord, error)
 }
 
+// URLsHandler структура, объединяющая в себе хранилище Storage, ServerConfig и канал deleteQueue для создания тасок на удаление ссылок
 type URLsHandler struct {
 	urls        Storage
 	config      config.ServerConfig
 	deleteQueue chan storage.ToDelete
 }
 
+// NewURLsHandler инициализирует URLsHandler, необходимого для работы хендлеров
 func NewURLsHandler(storage Storage, queue chan storage.ToDelete, config config.ServerConfig) *URLsHandler {
 	return &URLsHandler{
 		urls:        storage,
@@ -37,16 +41,11 @@ func NewURLsHandler(storage Storage, queue chan storage.ToDelete, config config.
 	}
 }
 
+// HandleShortenURLJSON обрабатывает запрос на создание коротких ссылок в формате application/json
 func (uh *URLsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodPost {
 		http.Error(w, "Wrong method",
 			http.StatusMethodNotAllowed)
-		return
-	}
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		http.Error(w, "Something went wrong",
-			http.StatusInternalServerError)
 		return
 	}
 
@@ -54,7 +53,7 @@ func (uh *URLsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 		URL string `json:"url"`
 	}
 
-	err = json.Unmarshal(body, &data)
+	err := json.NewDecoder(req.Body).Decode(&data)
 	if err != nil {
 		http.Error(w, "Could not parse body",
 			http.StatusBadRequest)
@@ -108,17 +107,12 @@ func (uh *URLsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 	}
 }
 
+// HandleShortenBatch обрабатывает пост-запрос на создание коротких ссылок батчами
 func (uh *URLsHandler) HandleShortenBatch(w http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodPost {
 		http.Error(w, "Wrong method",
 			http.StatusMethodNotAllowed)
-		return
-	}
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		http.Error(w, "Something went wrong",
-			http.StatusInternalServerError)
 		return
 	}
 
@@ -128,7 +122,7 @@ func (uh *URLsHandler) HandleShortenBatch(w http.ResponseWriter, req *http.Reque
 	}
 	var requestData []inData
 
-	err = json.Unmarshal(body, &requestData)
+	err := json.NewDecoder(req.Body).Decode(&requestData)
 	if err != nil {
 		http.Error(w, "Could not parse body",
 			http.StatusBadRequest)
@@ -189,6 +183,7 @@ func (uh *URLsHandler) HandleShortenBatch(w http.ResponseWriter, req *http.Reque
 	}
 }
 
+// HandleCreateShortURL обрабатывает запрос на создание ссылки в формате text/plain
 func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodPost {
@@ -262,6 +257,7 @@ func (uh *URLsHandler) getShortURL(ctx context.Context, longURL string, user int
 	return url.FormatShortURL(uh.config.ShortURLsAddress, shortURLID), true, nil
 }
 
+// HandleGetFullURL обрабатывает запрос на получение длинной ссылке по id короткой
 func (uh *URLsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request) {
 
 	if req.Method != http.MethodGet {
@@ -297,6 +293,7 @@ func (uh *URLsHandler) HandleGetFullURL(w http.ResponseWriter, req *http.Request
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+// HandlePing проверка что сервер запущен и работает
 func (uh *URLsHandler) HandlePing(w http.ResponseWriter, req *http.Request) {
 
 	conn, err := pgx.Connect(req.Context(), uh.config.DatabaseDSN)
@@ -309,6 +306,7 @@ func (uh *URLsHandler) HandlePing(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// HandleDeleteUserURLS обрабатывает запрос на удаление ссылок, принадлежащих данному юзеру
 func (uh *URLsHandler) HandleDeleteUserURLS(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodDelete {
 		http.Error(w, "Wrong method",
@@ -322,26 +320,22 @@ func (uh *URLsHandler) HandleDeleteUserURLS(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	body, err := io.ReadAll(req.Body)
-	if err != nil {
-		http.Error(w, "Something went wrong",
-			http.StatusInternalServerError)
-		return
-	}
-
 	var requestData []string
-	err = json.Unmarshal(body, &requestData)
+
+	err = json.NewDecoder(req.Body).Decode(&requestData)
 	if err != nil {
 		http.Error(w, "Could not parse body",
 			http.StatusBadRequest)
 		return
 	}
+
 	for _, rec := range requestData {
 		uh.deleteQueue <- storage.ToDelete{UserID: userID, ShortURL: rec}
 	}
 	w.WriteHeader(http.StatusAccepted)
 }
 
+// HandleUserURLS обрабатывает запрос на получение списка ссылок, принадлежащих данному пользователю
 func (uh *URLsHandler) HandleUserURLS(w http.ResponseWriter, req *http.Request) {
 	if req.Method != http.MethodGet {
 		http.Error(w, "Wrong method",

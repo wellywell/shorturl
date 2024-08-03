@@ -1,3 +1,4 @@
+// Пакет для обработки ссылок
 package url
 
 import (
@@ -9,6 +10,7 @@ import (
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const length = 10
 
+// MakeShortURLID создаёт случайную строку для короткой ссылки
 func MakeShortURLID(longURL string) (shortURL string) {
 	var sb strings.Builder
 
@@ -19,10 +21,12 @@ func MakeShortURLID(longURL string) (shortURL string) {
 	return sb.String()
 }
 
+// Validate проверяет корректный формат переданной ссылки
 func Validate(url string) bool {
 	return len(url) > 0 && len(url) < 250
 }
 
+// FormatShortURL из id короткой ссылки создаёт полную ссылку
 func FormatShortURL(base string, ID string) string {
 	return fmt.Sprintf("%s/%s", base, ID)
 }
