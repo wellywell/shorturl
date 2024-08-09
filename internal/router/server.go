@@ -55,6 +55,12 @@ func NewRouter(config config.ServerConfig, handlers URLsHandlers, middlewares ..
 // ListenAndServe - метод для запуска сервера
 func (r *Router) ListenAndServe() error {
 	addr := r.config.BaseAddress
-	err := http.ListenAndServe(addr, r.router)
+	var err error
+	if r.config.EnableHTTPS {
+		err = http.ListenAndServeTLS(addr, "server.rsa.crt", "server.rsa.key", r.router)
+	} else {
+		err = http.ListenAndServe(addr, r.router)
+
+	}
 	return err
 }

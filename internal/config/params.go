@@ -13,6 +13,7 @@ type ServerConfig struct {
 	ShortURLsAddress string `env:"BASE_URL"`
 	FileStoragePath  string `env:"FILE_STORAGE_PATH"`
 	DatabaseDSN      string `env:"DATABASE_DSN"`
+	EnableHTTPS      bool   `env:"ENABLE_HTTPS"`
 }
 
 // NewConfig инициализация объекта ServerConfig. Параметры берутся из env, либо аргументов командной строки
@@ -29,6 +30,7 @@ func NewConfig() (*ServerConfig, error) {
 	flag.StringVar(&commandLineParams.ShortURLsAddress, "b", "http://localhost:8080", "Short URLs base address")
 	flag.StringVar(&commandLineParams.FileStoragePath, "f", "/tmp/short-url-db.json", "Path to file to store urls")
 	flag.StringVar(&commandLineParams.DatabaseDSN, "d", "", "Database DSN")
+	flag.BoolVar(&commandLineParams.EnableHTTPS, "s", false, "Enable HTTPS")
 	flag.Parse()
 
 	if params.BaseAddress == "" {
@@ -42,6 +44,10 @@ func NewConfig() (*ServerConfig, error) {
 	}
 	if params.DatabaseDSN == "" {
 		params.DatabaseDSN = commandLineParams.DatabaseDSN
+	}
+
+	if !params.EnableHTTPS {
+		params.EnableHTTPS = commandLineParams.EnableHTTPS
 	}
 
 	return &params, nil
