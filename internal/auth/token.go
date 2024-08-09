@@ -1,4 +1,3 @@
-// Gfrtn
 package auth
 
 import (

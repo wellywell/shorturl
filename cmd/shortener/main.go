@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"net/http"
 	_ "net/http/pprof"
@@ -15,6 +16,12 @@ import (
 	"github.com/wellywell/shorturl/internal/router"
 	"github.com/wellywell/shorturl/internal/storage"
 	"github.com/wellywell/shorturl/internal/tasks"
+)
+
+var (
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
 )
 
 // Storage - интерфейс хранилища для ссылок
@@ -37,6 +44,9 @@ type Storage interface {
 }
 
 func main() {
+
+	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s", buildVersion, buildDate, buildCommit)
+
 	log, err := logging.NewLogger()
 	if err != nil {
 		panic(err)
@@ -59,7 +69,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer store.Close()
+	defer func() {
+		err = store.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	deleteQueue := make(chan storage.ToDelete)
 
@@ -70,7 +85,12 @@ func main() {
 	go tasks.DeleteWorker(deleteQueue, store)
 
 	// pprof c chi роутером ведёт себя странно, запустим отдельно
-	go http.ListenAndServe(":8081", nil)
+	go func() {
+		err = http.ListenAndServe(":8081", nil)
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	err = r.ListenAndServe()
 	if err != nil {

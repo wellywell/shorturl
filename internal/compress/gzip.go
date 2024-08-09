@@ -1,8 +1,9 @@
-// Пакет compress отвечает за методы для компрессии и декомпрессии request и response
+// Package compress отвечает за методы для компрессии и декомпрессии request и response
 package compress
 
 import (
 	"compress/gzip"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -55,7 +56,12 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 		return 0, err
 	}
 
-	defer w.compressor.writer.Close()
+	defer func() {
+		err := w.compressor.writer.Close()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
 	return w.compressor.writer.Write(b)
 }
 
@@ -79,7 +85,12 @@ func (u RequestUngzipper) Handle(next http.Handler) http.Handler {
 			return
 		}
 		r.Body = u.reader
-		defer u.reader.Close()
+		defer func() {
+			err := u.reader.Close()
+			if err != nil {
+				fmt.Println(err)
+			}
+		}()
 		next.ServeHTTP(w, r)
 	})
 }

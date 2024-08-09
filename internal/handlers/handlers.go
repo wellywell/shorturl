@@ -1,10 +1,11 @@
-// Пакет handlers включает в себя реализацию хендлеров для работы сервиса
+// Package handlers включает в себя реализацию хендлеров для работы сервиса
 package handlers
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -28,8 +29,8 @@ type Storage interface {
 // URLsHandler структура, объединяющая в себе хранилище Storage, ServerConfig и канал deleteQueue для создания тасок на удаление ссылок
 type URLsHandler struct {
 	urls        Storage
-	config      config.ServerConfig
 	deleteQueue chan storage.ToDelete
+	config      config.ServerConfig
 }
 
 // NewURLsHandler инициализирует URLsHandler, необходимого для работы хендлеров
@@ -138,7 +139,8 @@ func (uh *URLsHandler) HandleShortenBatch(w http.ResponseWriter, req *http.Reque
 	w.Header().Set("content-type", "application/json")
 
 	if len(requestData) > 0 {
-		userID, err := uh.getOrCreateUser(w, req)
+		var userID int
+		userID, err = uh.getOrCreateUser(w, req)
 		if err != nil {
 			http.Error(w, "Error authenticating user", http.StatusBadRequest)
 			return
@@ -302,7 +304,12 @@ func (uh *URLsHandler) HandlePing(w http.ResponseWriter, req *http.Request) {
 			http.StatusInternalServerError)
 		return
 	}
-	defer conn.Close(req.Context())
+	defer func() {
+		err := conn.Close(req.Context())
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
 	w.WriteHeader(http.StatusOK)
 }
 

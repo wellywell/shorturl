@@ -136,7 +136,7 @@ func RunTestDatabase() (DSN string, cleanUp func(), err error) {
 	}
 	cleanUpfuncs = append(cleanUpfuncs, func() {
 		logger.Info("Closing docker pool")
-		if err := pool.Purge(pg); err != nil {
+		if err = pool.Purge(pg); err != nil {
 			log.Printf("Failed to purge docker")
 		}
 
@@ -145,14 +145,14 @@ func RunTestDatabase() (DSN string, cleanUp func(), err error) {
 	hostPort := pg.GetHostPort("5432/tcp")
 
 	initGetDSN(hostPort)
-	if err := initGetSUConnection(hostPort); err != nil {
+	if err = initGetSUConnection(hostPort); err != nil {
 		return "", clear, err
 	}
 
 	pool.MaxWait = 10 * time.Second
 	var conn *pgx.Conn
 
-	if err := pool.Retry(func() error {
+	if err = pool.Retry(func() error {
 		conn, err = getSUConnection()
 		if err != nil {
 			return err

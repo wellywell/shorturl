@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/wellywell/shorturl/internal/config"
 	"github.com/wellywell/shorturl/internal/storage"
@@ -62,9 +63,11 @@ func randomString() string {
 func TestHandleCreateShortURL(t *testing.T) {
 
 	testCases := []struct {
-		method         string
-		expectedCode   int
-		body           io.Reader
+		body   io.Reader
+		method string
+
+		expectedCode int
+
 		bodyIsExpected bool
 	}{
 		{method: http.MethodGet, body: nil, expectedCode: http.StatusMethodNotAllowed, bodyIsExpected: false},
@@ -146,9 +149,11 @@ func BenchmarkHandleCreateShortURLFile(b *testing.B) {
 func TestHandleShortenURLJSON(t *testing.T) {
 
 	testCases := []struct {
-		method         string
-		expectedCode   int
-		body           io.Reader
+		body   io.Reader
+		method string
+
+		expectedCode int
+
 		bodyIsExpected bool
 	}{
 		{method: http.MethodGet, body: nil, expectedCode: http.StatusMethodNotAllowed, bodyIsExpected: false},
@@ -177,7 +182,7 @@ func TestHandleShortenURLJSON(t *testing.T) {
 				}
 				body, _ := io.ReadAll(w.Body)
 				err := json.Unmarshal(body, &result)
-				assert.NoError(t, err, "Coulnd not unmarshal result")
+				require.NoError(t, err, "Could not unmarshal result")
 				assert.NotEmpty(t, result.Result, "Result пустой")
 			}
 		})

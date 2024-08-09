@@ -8,9 +8,11 @@ const userCookie = "_user"
 
 // VerifyUser проверяет куку из запроса, и достаёт из неё id user-a. Вернёт ошибку при неудаче
 func VerifyUser(r *http.Request) (int, error) {
+
 	cookie, err := r.Cookie(userCookie)
 	if err == nil {
-		userID, err := GetUserID(cookie.Value)
+		var userID int
+		userID, err = GetUserID(cookie.Value)
 		if err != nil {
 			return 0, err
 		}

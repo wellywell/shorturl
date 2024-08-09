@@ -1,8 +1,9 @@
-// В пакете реализована отложенная таска для удаления ссылок
+// Package tasks - отложенная таска для удаления ссылок
 package tasks
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/wellywell/shorturl/internal/storage"
 	"go.uber.org/zap"
@@ -20,7 +21,12 @@ func DeleteWorker(tasks <-chan storage.ToDelete, store Storage) {
 	if err != nil {
 		return
 	}
-	defer logger.Sync()
+	defer func() {
+		err := logger.Sync()
+		if err != nil {
+			fmt.Println(err)
+		}
+	}()
 
 	sugar := logger.Sugar()
 

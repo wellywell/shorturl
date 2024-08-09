@@ -76,7 +76,10 @@ func ExampleMemory() {
 	val, _ = memory.Get(ctx, "key3")
 	fmt.Println(val)
 
-	memory.Close()
+	err := memory.Close()
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	// Output:
 	// value
