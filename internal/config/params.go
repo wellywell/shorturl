@@ -80,9 +80,9 @@ func NewConfig() (*ServerConfig, error) {
 		fileParams = parseFileParams(params.ConfigFile)
 	}
 
-	params.BaseAddress = firstNotZero(params.BaseAddress, commandLineParams.BaseAddress, fileParams.BaseAddress)
-	params.ShortURLsAddress = firstNotZero(params.ShortURLsAddress, commandLineParams.ShortURLsAddress, fileParams.ShortURLsAddress)
-	params.FileStoragePath = firstNotZero(params.FileStoragePath, commandLineParams.FileStoragePath, fileParams.FileStoragePath)
+	params.BaseAddress = firstNotZero(params.BaseAddress, commandLineParams.BaseAddress, fileParams.BaseAddress, "localhost:8080")
+	params.ShortURLsAddress = firstNotZero(params.ShortURLsAddress, commandLineParams.ShortURLsAddress, fileParams.ShortURLsAddress, "http://localhost:8080")
+	params.FileStoragePath = firstNotZero(params.FileStoragePath, commandLineParams.FileStoragePath, fileParams.FileStoragePath, "/tmp/short-url-db.json")
 	params.DatabaseDSN = firstNotZero(params.DatabaseDSN, commandLineParams.DatabaseDSN, fileParams.DatabaseDSN)
 	params.EnableHTTPS = firstNotZero(params.EnableHTTPS, commandLineParams.EnableHTTPS, fileParams.EnableHTTPS)
 
