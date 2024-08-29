@@ -5,10 +5,12 @@ import (
 	"net/netip"
 )
 
+// SubnetChecker middleware для проверки вхождения ip-адреса запроса в подсеть
 type SubnetChecker struct {
 	Trusted string
 }
 
+// Handle для использоования SubnetChecker в качестве Middleware
 func (s SubnetChecker) Handle(next http.Handler) http.Handler {
 
 	authenticate := func(w http.ResponseWriter, r *http.Request) {
