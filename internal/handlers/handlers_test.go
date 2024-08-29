@@ -1,19 +1,20 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"github.com/wellywell/shorturl/internal/config"
 	"github.com/wellywell/shorturl/internal/storage"
 )
@@ -558,4 +559,65 @@ func BenchmarkHandleDeleteUserURLSFile(b *testing.B) {
 		b.StartTimer()
 		handler.HandleDeleteUserURLS(w, r)
 	}
+}
+
+func TestURLsHandler_HandleGetStats(t *testing.T) {
+
+	storage := storage.NewMemory()
+	urls := &URLsHandler{urls: storage, config: mockConfig}
+
+	t.Run("testEmptyStats", func(t *testing.T) {
+		r := httptest.NewRequest(http.MethodGet, "/api/stats", nil)
+		w := httptest.NewRecorder()
+
+		urls.HandleGetStats(w, r)
+
+		assert.Equal(t, http.StatusOK, w.Code, "Код ответа не совпадает с ожидаемым")
+		assert.NotEmpty(t, w.Body.String(), "Body пустой")
+
+		var result struct {
+			URLs  int `json:"urls"`
+			Users int `json:"users"`
+		}
+		body, _ := io.ReadAll(w.Body)
+		err := json.Unmarshal(body, &result)
+		require.NoError(t, err, "Could not unmarshal result")
+		assert.Equal(t, 0, result.URLs, "urls не соответствует ожидаемому")
+		assert.Equal(t, 0, result.Users, "users не соответствует ожидаемому")
+	})
+
+}
+
+func TestURLsHandler_HandleGetStatsNotEmpty(t *testing.T) {
+
+	storage := storage.NewMemory()
+	urls := &URLsHandler{urls: storage, config: mockConfig}
+	ctx := context.Background()
+
+	for range 3 {
+		i, _ := storage.CreateNewUser(ctx)
+		key := strconv.Itoa(i)
+		_ = storage.Put(ctx, key, "val", i)
+	}
+
+	t.Run("testEmptyStats", func(t *testing.T) {
+		r := httptest.NewRequest(http.MethodGet, "/api/stats", nil)
+		w := httptest.NewRecorder()
+
+		urls.HandleGetStats(w, r)
+
+		assert.Equal(t, http.StatusOK, w.Code, "Код ответа не совпадает с ожидаемым")
+		assert.NotEmpty(t, w.Body.String(), "Body пустой")
+
+		var result struct {
+			URLs  int `json:"urls"`
+			Users int `json:"users"`
+		}
+		body, _ := io.ReadAll(w.Body)
+		err := json.Unmarshal(body, &result)
+		require.NoError(t, err, "Could not unmarshal result")
+		assert.Equal(t, 3, result.URLs, "urls не соответствует ожидаемому")
+		assert.Equal(t, 3, result.Users, "users не соответствует ожидаемому")
+	})
+
 }

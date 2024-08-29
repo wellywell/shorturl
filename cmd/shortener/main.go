@@ -45,6 +45,10 @@ type Storage interface {
 	DeleteBatch(ctx context.Context, records ...storage.ToDelete) error
 	// Close корректно завершает работу хранилища
 	Close() error
+	// CountURLs количество сохраненных записей
+	CountURLs(ctx context.Context) (int, error)
+	// CountUsers количество сохраненных пользователей
+	CountUsers(ctx context.Context) (int, error)
 }
 
 func main() {

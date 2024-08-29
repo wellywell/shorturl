@@ -24,6 +24,8 @@ type Storage interface {
 	PutBatch(ctx context.Context, records ...storage.URLRecord) error
 	CreateNewUser(ctx context.Context) (int, error)
 	GetUserURLS(ctx context.Context, userID int) ([]storage.URLRecord, error)
+	CountURLs(ctx context.Context) (int, error)
+	CountUsers(ctx context.Context) (int, error)
 }
 
 // URLsHandler структура, объединяющая в себе хранилище Storage, ServerConfig и канал deleteQueue для создания тасок на удаление ссылок
@@ -410,4 +412,43 @@ func (uh *URLsHandler) getOrCreateUser(w http.ResponseWriter, req *http.Request)
 		return 0, err
 	}
 	return userID, nil
+}
+
+// HandleGetStats возвращает метрики
+func (uh *URLsHandler) HandleGetStats(w http.ResponseWriter, req *http.Request) {
+	users, err := uh.urls.CountUsers(req.Context())
+	if err != nil {
+		http.Error(w, "Could not count users",
+			http.StatusInternalServerError)
+		return
+	}
+
+	urls, err := uh.urls.CountURLs(req.Context())
+	if err != nil {
+		http.Error(w, "Could not count users",
+			http.StatusInternalServerError)
+		return
+	}
+	result := struct {
+		URLs  int `json:"urls"`
+		Users int `json:"users"`
+	}{
+		URLs:  urls,
+		Users: users,
+	}
+
+	response, err := json.Marshal(result)
+	if err != nil {
+		http.Error(w, "Could not serialize result",
+			http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("content-type", "application/json")
+	_, err = w.Write(response)
+	if err != nil {
+		http.Error(w, "Something went wrong",
+			http.StatusInternalServerError)
+	}
+
 }

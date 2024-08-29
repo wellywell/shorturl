@@ -19,6 +19,7 @@ type ServerConfig struct {
 	DatabaseDSN      string `env:"DATABASE_DSN" json:"database_dsn"`
 	EnableHTTPS      bool   `env:"ENABLE_HTTPS" json:"enable_https"`
 	ConfigFile       string `env:"CONFIG"`
+	Trusted          string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 }
 
 func parseFileParams(name string) ServerConfig {
@@ -70,6 +71,7 @@ func NewConfig() (*ServerConfig, error) {
 	flag.StringVar(&commandLineParams.DatabaseDSN, "d", "", "Database DSN")
 	flag.BoolVar(&commandLineParams.EnableHTTPS, "s", false, "Enable HTTPS")
 	flag.StringVar(&commandLineParams.ConfigFile, "c", "", "Config file")
+	flag.StringVar(&commandLineParams.Trusted, "t", "", "Trusted subnet")
 	flag.Parse()
 
 	if params.ConfigFile == "" {
@@ -85,6 +87,7 @@ func NewConfig() (*ServerConfig, error) {
 	params.FileStoragePath = firstNotZero(params.FileStoragePath, commandLineParams.FileStoragePath, fileParams.FileStoragePath, "/tmp/short-url-db.json")
 	params.DatabaseDSN = firstNotZero(params.DatabaseDSN, commandLineParams.DatabaseDSN, fileParams.DatabaseDSN)
 	params.EnableHTTPS = firstNotZero(params.EnableHTTPS, commandLineParams.EnableHTTPS, fileParams.EnableHTTPS)
+	params.Trusted = firstNotZero(params.Trusted, commandLineParams.Trusted, fileParams.Trusted)
 
 	return &params, nil
 }
