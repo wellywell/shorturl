@@ -134,7 +134,7 @@ func TestShorturlServer_GetFullURL(t *testing.T) {
 
 	short, err := s.ShortenURL(ctx, &pb.ShortenURLRequest{Url: "111"})
 	assert.NoError(t, err)
-	shortUrl := strings.Split(short.Result, "/")[3]
+	shortURL := strings.Split(short.Result, "/")[3]
 
 	tests := []struct {
 		name    string
@@ -143,7 +143,7 @@ func TestShorturlServer_GetFullURL(t *testing.T) {
 		wantErr bool
 	}{
 		{"not found", args{ctx, &pb.FullURLRequest{ShortId: "000"}}, nil, true},
-		{"found", args{ctx, &pb.FullURLRequest{ShortId: shortUrl}}, &pb.FullURLResponse{FullUrl: "111"}, false},
+		{"found", args{ctx, &pb.FullURLRequest{ShortId: shortURL}}, &pb.FullURLResponse{FullUrl: "111"}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
