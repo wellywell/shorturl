@@ -13,6 +13,7 @@ import (
 
 	"github.com/wellywell/shorturl/internal/auth"
 	"github.com/wellywell/shorturl/internal/config"
+	"github.com/wellywell/shorturl/internal/handlers"
 	"github.com/wellywell/shorturl/internal/storage"
 	"github.com/wellywell/shorturl/internal/url"
 )
@@ -76,7 +77,7 @@ func (uh *URLsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	shortURL, isCreated, err := uh.getShortURL(req.Context(), longURL, userID)
+	shortURL, isCreated, err := handlers.GetShortURL(req.Context(), longURL, userID, uh.urls, uh.config)
 	if err != nil {
 		http.Error(w, "Could not store url",
 			http.StatusInternalServerError)
@@ -216,7 +217,7 @@ func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	shortURL, isCreated, err := uh.getShortURL(req.Context(), longURL, userID)
+	shortURL, isCreated, err := handlers.GetShortURL(req.Context(), longURL, userID, uh.urls, uh.config)
 	if err != nil {
 		http.Error(w, "Could not store url",
 			http.StatusInternalServerError)
@@ -235,30 +236,6 @@ func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 		http.Error(w, "Something went wrong",
 			http.StatusInternalServerError)
 	}
-}
-
-func (uh *URLsHandler) getShortURL(ctx context.Context, longURL string, user int) (URL string, isCreated bool, err error) {
-	shortURLID := url.MakeShortURLID(longURL)
-
-	// Handle collisions
-	for {
-		err := uh.urls.Put(ctx, shortURLID, longURL, user)
-		if err == nil {
-			break
-		}
-
-		var keyExists *storage.KeyExistsError
-		var valueExists *storage.ValueExistsError
-		if errors.As(err, &keyExists) {
-			// сгенерить новую ссылку и попробовать заново
-			shortURLID = url.MakeShortURLID(longURL)
-		} else if errors.As(err, &valueExists) {
-			return url.FormatShortURL(uh.config.ShortURLsAddress, valueExists.ExistingKey), false, nil
-		} else {
-			return "", false, err
-		}
-	}
-	return url.FormatShortURL(uh.config.ShortURLsAddress, shortURLID), true, nil
 }
 
 // HandleGetFullURL обрабатывает запрос на получение длинной ссылке по id короткой

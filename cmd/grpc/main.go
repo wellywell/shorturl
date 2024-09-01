@@ -1,25 +1,21 @@
-// Точка запуска приложения shorturl, хранящего и возвращающего короткие ссылки вместо длинных
-
+// GRPC версия cервиса shorturl
 package main
 
 import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
+	"net"
 
-	"net/http"
 	_ "net/http/pprof"
 
-	"github.com/wellywell/shorturl/internal/compress"
 	"github.com/wellywell/shorturl/internal/config"
-	"github.com/wellywell/shorturl/internal/handlers/http/handlers"
-	"github.com/wellywell/shorturl/internal/logging"
-	"github.com/wellywell/shorturl/internal/router"
+	"github.com/wellywell/shorturl/internal/handlers/grpc/handlers"
+	pb "github.com/wellywell/shorturl/internal/handlers/grpc/proto"
 	"github.com/wellywell/shorturl/internal/storage"
 	"github.com/wellywell/shorturl/internal/tasks"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 )
 
 var (
@@ -55,11 +51,6 @@ func main() {
 
 	fmt.Printf("Build version: %s\nBuild date: %s\nBuild commit: %s", buildVersion, buildDate, buildCommit)
 
-	logger, err := logging.NewLogger()
-	if err != nil {
-		panic(err)
-	}
-
 	conf, err := config.NewConfig()
 	if err != nil {
 		panic(err)
@@ -85,43 +76,33 @@ func main() {
 	}()
 
 	deleteQueue := make(chan storage.ToDelete)
-
-	urls := handlers.NewURLsHandler(store, deleteQueue, *conf)
-
-	s := router.NewServer(*conf, urls, logger, compress.RequestUngzipper{}, compress.ResponseGzipper{})
-
 	go tasks.DeleteWorker(deleteQueue, store)
 
-	// pprof c chi роутером ведёт себя странно, запустим отдельно
-	go func() {
-		err = http.ListenAndServe(":8081", nil)
-		if err != nil {
-			panic(err)
-		}
-	}()
+	urls := handlers.NewShorturlServer(store, deleteQueue, *conf)
 
-	// Listen for syscall signals for process to interrupt/quit
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-
-	// Server run context
-	serverCtx, serverStopCtx := context.WithCancel(context.Background())
-
-	go func() {
-		<-sig
-		// Trigger graceful shutdown
-		err := s.Shutdown(serverCtx)
+	// определяем порт для сервера
+	listen, err := net.Listen("tcp", conf.BaseAddress)
+	if err != nil {
+		log.Fatal(err)
+	}
+	var s *grpc.Server
+	if conf.EnableHTTPS {
+		fmt.Println("Starting TLS grpc")
+		creds, err := credentials.NewServerTLSFromFile("server.rsa.crt", "server.rsa.key")
 		if err != nil {
 			log.Fatal(err)
 		}
-		serverStopCtx()
-	}()
-
-	err = s.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		log.Fatal(err)
+		s = grpc.NewServer(grpc.Creds(creds))
+	} else {
+		s = grpc.NewServer()
 	}
 
-	// Wait for server context to be stopped
-	<-serverCtx.Done()
+	// регистрируем сервис
+	pb.RegisterShortURLServiceServer(s, urls)
+
+	fmt.Println("Сервер gRPC начал работу")
+	// получаем запрос gRPC
+	if err := s.Serve(listen); err != nil {
+		log.Fatal(err)
+	}
 }
