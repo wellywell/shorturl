@@ -3,6 +3,7 @@
 package router
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -27,13 +28,13 @@ type Middleware interface {
 }
 
 // Router - объект роутера
-type Router struct {
-	router *chi.Mux
+type Server struct {
+	server http.Server
 	config config.ServerConfig
 }
 
 // NewRouter инициализирует Router, прописывает пути, на которых сервер будет слушать
-func NewRouter(config config.ServerConfig, handlers URLsHandlers, middlewares ...Middleware) *Router {
+func NewServer(config config.ServerConfig, handlers URLsHandlers, middlewares ...Middleware) *Server {
 
 	r := chi.NewRouter()
 
@@ -49,12 +50,22 @@ func NewRouter(config config.ServerConfig, handlers URLsHandlers, middlewares ..
 	r.Get("/api/user/urls", handlers.HandleUserURLS)
 	r.Delete("/api/user/urls", handlers.HandleDeleteUserURLS)
 
-	return &Router{router: r, config: config}
+	return &Server{server: http.Server{Addr: config.BaseAddress, Handler: r}, config: config}
 }
 
 // ListenAndServe - метод для запуска сервера
-func (r *Router) ListenAndServe() error {
-	addr := r.config.BaseAddress
-	err := http.ListenAndServe(addr, r.router)
+func (s *Server) ListenAndServe() error {
+	var err error
+	if s.config.EnableHTTPS {
+		err = s.server.ListenAndServeTLS("server.rsa.crt", "server.rsa.key")
+	} else {
+		err = s.server.ListenAndServe()
+
+	}
 	return err
+}
+
+// Shutdown gracefull shutddown
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.server.Shutdown(ctx)
 }

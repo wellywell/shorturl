@@ -18,7 +18,7 @@ func Example() {
 
 	logger, _ := logging.NewLogger()
 
-	r := NewRouter(mockConfig, handler, logger, compress.RequestUngzipper{}, compress.ResponseGzipper{})
+	r := NewServer(mockConfig, handler, logger, compress.RequestUngzipper{}, compress.ResponseGzipper{})
 
 	go func() {
 		err := r.ListenAndServe()
