@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package handlers.grcp;
+
+option go_package = "github.com/wellywell/shortURL/internal/handlers/grpc/proto";
+
+message ShortenURLRequest {
+    string url = 1;  // исходный URL
+  }
+
+message ShortenURLResponse {
+    string result = 1;
+    bool is_created = 2;
+}
+
+
+message ShortenBatchInData {
+    string correlation_id = 1;
+    string original_url = 2;
+}  
+
+message ShortenBatchRequest {
+    repeated ShortenBatchInData data = 1;
+}
+
+message ShortenBatchOutData {
+    string short_url = 1;
+    string correlation_id = 2;
+    int32 user_id = 3;
+}
+
+message ShortenBatchResponse {
+    repeated ShortenBatchOutData data = 1;
+}
+
+message FullURLRequest {
+    string short_id = 1;
+}
+
+message FullURLResponse {
+    string full_url = 1;
+}
+
+message URLData {
+    string short_url = 1;
+    string original_url = 2;
+}
+
+message DeleteUserURLsRequest {
+    repeated string data = 1;
+}
+message DeleteUserURLsResponse {}
+
+message GetUserURLsRequest{}
+message GetUserURLsResponse {
+    repeated URLData data = 1;
+}
+
+message GetStatsRequest {}
+message GetStatsResponse {
+    int32 urls = 1;
+    int32 users = 2;
+}
+
+message PingRequest {}
+message PingResponse {}
+
+service ShortURLService {
+    rpc ShortenURL(ShortenURLRequest) returns (ShortenURLResponse);
+    rpc ShortenBatch(ShortenBatchRequest) returns (ShortenBatchResponse);
+    rpc GetFullURL (FullURLRequest) returns (FullURLResponse);
+    rpc DeleteUserURLS(DeleteUserURLsRequest) returns (DeleteUserURLsResponse);
+    rpc GetUserURLs(GetUserURLsRequest) returns (GetUserURLsResponse);
+    rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+    rpc Ping(PingRequest) returns (PingResponse);
+
+}

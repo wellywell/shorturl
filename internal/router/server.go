@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/wellywell/shorturl/internal/auth"
 	"github.com/wellywell/shorturl/internal/config"
 )
 
@@ -20,6 +21,7 @@ type URLsHandlers interface {
 	HandleShortenBatch(w http.ResponseWriter, req *http.Request)
 	HandleUserURLS(w http.ResponseWriter, req *http.Request)
 	HandleDeleteUserURLS(w http.ResponseWriter, req *http.Request)
+	HandleGetStats(w http.ResponseWriter, req *http.Request)
 }
 
 // Middleware - интерфейс, которому должны соответствовать используемые Middleware
@@ -49,6 +51,8 @@ func NewServer(config config.ServerConfig, handlers URLsHandlers, middlewares ..
 	r.Post("/api/shorten/batch", handlers.HandleShortenBatch)
 	r.Get("/api/user/urls", handlers.HandleUserURLS)
 	r.Delete("/api/user/urls", handlers.HandleDeleteUserURLS)
+
+	r.With(auth.SubnetChecker{Trusted: config.Trusted}.Handle).Get("/api/internal/stats", handlers.HandleGetStats)
 
 	return &Server{server: http.Server{Addr: config.BaseAddress, Handler: r}, config: config}
 }

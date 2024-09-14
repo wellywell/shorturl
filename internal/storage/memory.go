@@ -69,6 +69,16 @@ func (m *Memory) Delete(key string, user int) {
 	m.urls[key] = FullURLData{FullURL: v.FullURL, UserID: v.UserID, IsDeleted: true}
 }
 
+// CountURLs возвращает количество сохранённых ссылок
+func (m *Memory) CountURLs(ctx context.Context) (int, error) {
+	return len(m.urls), nil
+}
+
+// CountUsers возвращает количество пользователей
+func (m *Memory) CountUsers(ctx context.Context) (int, error) {
+	return m.maxUserID, nil
+}
+
 // CreateNewUser создание нового пользователя
 func (m *Memory) CreateNewUser(ctx context.Context) (int, error) {
 	m.lock.Lock()

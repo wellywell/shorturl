@@ -17,6 +17,8 @@ type MemoryStorage interface {
 	GetUserURLS(ctx context.Context, userID int) ([]URLRecord, error)
 	GetAllRecords() []URLRecord
 	Delete(key string, user int)
+	CountURLs(ctx context.Context) (int, error)
+	CountUsers(ctx context.Context) (int, error)
 }
 
 // FileRecord структура, задающая формат хранения записи в файле
@@ -114,6 +116,16 @@ func (f *FileMemory) GetUserURLS(ctx context.Context, userID int) ([]URLRecord, 
 	f.lock.RLock()
 	defer f.lock.RUnlock()
 	return f.memory.GetUserURLS(ctx, userID)
+}
+
+// CountURLs возвращает количество сохранённых ссылок
+func (f *FileMemory) CountURLs(ctx context.Context) (int, error) {
+	return f.memory.CountURLs(ctx)
+}
+
+// CountUsers возвращает количество пользователей
+func (f *FileMemory) CountUsers(ctx context.Context) (int, error) {
+	return f.memory.CountUsers(ctx)
 }
 
 func (f *FileMemory) writeToFile(key string, val string, user int, isDeleted bool) error {

@@ -13,6 +13,7 @@ import (
 
 	"github.com/wellywell/shorturl/internal/auth"
 	"github.com/wellywell/shorturl/internal/config"
+	"github.com/wellywell/shorturl/internal/handlers"
 	"github.com/wellywell/shorturl/internal/storage"
 	"github.com/wellywell/shorturl/internal/url"
 )
@@ -24,6 +25,8 @@ type Storage interface {
 	PutBatch(ctx context.Context, records ...storage.URLRecord) error
 	CreateNewUser(ctx context.Context) (int, error)
 	GetUserURLS(ctx context.Context, userID int) ([]storage.URLRecord, error)
+	CountURLs(ctx context.Context) (int, error)
+	CountUsers(ctx context.Context) (int, error)
 }
 
 // URLsHandler структура, объединяющая в себе хранилище Storage, ServerConfig и канал deleteQueue для создания тасок на удаление ссылок
@@ -74,7 +77,7 @@ func (uh *URLsHandler) HandleShortenURLJSON(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	shortURL, isCreated, err := uh.getShortURL(req.Context(), longURL, userID)
+	shortURL, isCreated, err := handlers.GetShortURL(req.Context(), longURL, userID, uh.urls, uh.config)
 	if err != nil {
 		http.Error(w, "Could not store url",
 			http.StatusInternalServerError)
@@ -214,7 +217,7 @@ func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	shortURL, isCreated, err := uh.getShortURL(req.Context(), longURL, userID)
+	shortURL, isCreated, err := handlers.GetShortURL(req.Context(), longURL, userID, uh.urls, uh.config)
 	if err != nil {
 		http.Error(w, "Could not store url",
 			http.StatusInternalServerError)
@@ -233,30 +236,6 @@ func (uh *URLsHandler) HandleCreateShortURL(w http.ResponseWriter, req *http.Req
 		http.Error(w, "Something went wrong",
 			http.StatusInternalServerError)
 	}
-}
-
-func (uh *URLsHandler) getShortURL(ctx context.Context, longURL string, user int) (URL string, isCreated bool, err error) {
-	shortURLID := url.MakeShortURLID(longURL)
-
-	// Handle collisions
-	for {
-		err := uh.urls.Put(ctx, shortURLID, longURL, user)
-		if err == nil {
-			break
-		}
-
-		var keyExists *storage.KeyExistsError
-		var valueExists *storage.ValueExistsError
-		if errors.As(err, &keyExists) {
-			// сгенерить новую ссылку и попробовать заново
-			shortURLID = url.MakeShortURLID(longURL)
-		} else if errors.As(err, &valueExists) {
-			return url.FormatShortURL(uh.config.ShortURLsAddress, valueExists.ExistingKey), false, nil
-		} else {
-			return "", false, err
-		}
-	}
-	return url.FormatShortURL(uh.config.ShortURLsAddress, shortURLID), true, nil
 }
 
 // HandleGetFullURL обрабатывает запрос на получение длинной ссылке по id короткой
@@ -410,4 +389,43 @@ func (uh *URLsHandler) getOrCreateUser(w http.ResponseWriter, req *http.Request)
 		return 0, err
 	}
 	return userID, nil
+}
+
+// HandleGetStats возвращает метрики
+func (uh *URLsHandler) HandleGetStats(w http.ResponseWriter, req *http.Request) {
+	users, err := uh.urls.CountUsers(req.Context())
+	if err != nil {
+		http.Error(w, "Could not count users",
+			http.StatusInternalServerError)
+		return
+	}
+
+	urls, err := uh.urls.CountURLs(req.Context())
+	if err != nil {
+		http.Error(w, "Could not count users",
+			http.StatusInternalServerError)
+		return
+	}
+	result := struct {
+		URLs  int `json:"urls"`
+		Users int `json:"users"`
+	}{
+		URLs:  urls,
+		Users: users,
+	}
+
+	response, err := json.Marshal(result)
+	if err != nil {
+		http.Error(w, "Could not serialize result",
+			http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("content-type", "application/json")
+	_, err = w.Write(response)
+	if err != nil {
+		http.Error(w, "Something went wrong",
+			http.StatusInternalServerError)
+	}
+
 }

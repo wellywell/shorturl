@@ -5,7 +5,7 @@ import (
 
 	"github.com/wellywell/shorturl/internal/compress"
 	"github.com/wellywell/shorturl/internal/config"
-	"github.com/wellywell/shorturl/internal/handlers"
+	"github.com/wellywell/shorturl/internal/handlers/http/handlers"
 	"github.com/wellywell/shorturl/internal/logging"
 	"github.com/wellywell/shorturl/internal/storage"
 )

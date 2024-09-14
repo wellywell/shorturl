@@ -152,6 +152,32 @@ func (d *Database) GetUserURLS(ctx context.Context, userID int) ([]URLRecord, er
 	return numbers, nil
 }
 
+// CountURLs возвращает количество сохранённых ссылок
+func (d *Database) CountURLs(ctx context.Context) (int, error) {
+	row := d.pool.QueryRow(ctx, "SELECT count(*) FROM auth_user")
+
+	var count int
+
+	err := row.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// CountUsers возвращает количество пользователей
+func (d *Database) CountUsers(ctx context.Context) (int, error) {
+	row := d.pool.QueryRow(ctx, "SELECT count(*) FROM link")
+
+	var count int
+
+	err := row.Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // Close завершает работу базы данных
 func (d *Database) Close() error {
 	d.pool.Close()
